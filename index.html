@@ -6315,8 +6315,12 @@ document.addEventListener("click", event => {
 
 // What a phone says before the first search; the first answer takes its place.
 const WELCOME = `<span class="welcome"><b>Welcome to the ${DOUBLEDAY ? "Canon Sleuth" : "Jane Austen Concordance"}</b>`
-  + `<span>${DOUBLEDAY ? "Every word of the sixty Sherlock Holmes stories, as the Doubleday edition prints them"
-    : "Every word of Jane Austen’s novels and juvenilia"} — here on your phone, with a signal or without one.</span>`
+  + (DOUBLEDAY
+    ? `<span>Every word of the sixty Sherlock Holmes stories as the Doubleday edition prints them,`
+      + ` compared with the Strand Magazine (desktop mode only), and two apocryphal pieces besides:`
+      + ` “The Field Bazaar” and “How Watson Learned the Trick”.</span>`
+      + `<span>It’s Canonical++, with all data stored locally and accessible offline.</span>`
+    : `<span>Every word of Jane Austen’s novels and juvenilia, with all data stored locally and accessible offline.</span>`)
   + `<span>Type a word, a few words, or a phrase in “quotes”, then tap Search.</span>`
   + `<span>Tap a result to read it; swipe left or right for the next. Turn the phone sideways for two pages.</span></span>`;
 

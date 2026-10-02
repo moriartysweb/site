@@ -2,7 +2,7 @@
 // web/site.py fills in the three constants; a new build changes CACHE, which is what
 // makes the browser take the new files and drop the old ones.
 const PREFIX = "sherlock-";
-const CACHE = PREFIX + "1e9c1dcaf635";
+const CACHE = PREFIX + "8d29a91ff516";
 const FILES = ["./", "index.html", "pages.json", "notes-extra.json", "notes-more.json", "sherlock-180.png", "sherlock-192.png", "sherlock-512.png", "sherlock.svg", "manifest.webmanifest"];
 const FONTS = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Lora:ital,wght@0,400;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Pinyon+Script&display=swap";
 
