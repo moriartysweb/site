@@ -1,6 +1,12 @@
 {
-  "name": "Jane Austen Concordance",
+  "name": "Jane Austen Concordance Search",
   "short_name": "Austen",
+  "description": "Search Jane Austen offline: every word of the novels and juvenilia.",
+  "categories": [
+    "books",
+    "education",
+    "reference"
+  ],
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

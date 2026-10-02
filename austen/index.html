@@ -10,7 +10,7 @@
 <link rel="icon" href="austen.svg" type="image/svg+xml">
 <meta name="theme-color" content="#F6F7FB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#12141C" media="(prefers-color-scheme: dark)">
-<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script>
+<script>if ("serviceWorker" in navigator){ const was = navigator.serviceWorker.controller; navigator.serviceWorker.addEventListener("controllerchange", () => { if (was) location.reload(); }); navigator.serviceWorker.register("sw.js").catch(() => {}); }</script>
 <style>
 :root{color-scheme:light dark}
 body{margin:0; font:14px system-ui,-apple-system,"Segoe UI",sans-serif; background:#fafaf9}
@@ -1390,6 +1390,23 @@ header:has(.simplexline) .pickers{margin-top:26px}
   margin:2px 40px 6px 3px;font-size:16px;padding:7px 14px;box-shadow:none}
 :root.handheld .rbody{padding-top:4px}
 :root.handheld .rhead .theming.inpanel{margin-top:0}
+:root.handheld #q::placeholder{color:var(--ink);opacity:.42}
+/* Until something is typed the field calls for it, three times and then still; motion
+   only where the reader has not asked for less. */
+@media (prefers-reduced-motion:no-preference){
+  :root.handheld #q:placeholder-shown:not(:focus){animation:askme 1.3s ease-in-out .4s 3}
+}
+@keyframes askme{
+  50%{border-color:var(--hit-strong);box-shadow:0 0 0 5px color-mix(in srgb,var(--hit-strong) 22%,transparent)}
+}
+/* the welcome stands where the results will, and the heading for them waits */
+:root.handheld .wrap:has(.welcome) #rhead{display:none}
+.welcome{display:block;margin:6px 0 0;padding:16px 18px;border:1px solid var(--rule);
+  border-radius:10px;background:var(--panel);box-shadow:0 6px 18px rgba(10,14,30,.08);
+  font:400 15px/1.5 "IBM Plex Sans",sans-serif;color:var(--ink-soft)}
+.welcome b{display:block;margin-bottom:6px;font:600 21px/1.2 "Barlow Condensed",sans-serif;
+  letter-spacing:.03em;text-transform:uppercase;color:var(--ink)}
+.welcome span{display:block;margin-top:8px}
 /* it opens on no search, and an empty frame there reads as a list still coming */
 :root.handheld .results-area:not(:has(.srow, .reading)){display:none}
 /* With the track put away, the passage's own scroll bar is what says where the reader is,
@@ -3055,6 +3072,13 @@ function termSearch(query, rows, pages, cased){
   const mended = cased ? [] : typed.filter(t => !isSign(t)).map(t => [t, lenient(t)]).filter(([a, b]) => a !== b);
   const terms = cased ? typed : [...new Set(typed.map(settled))];
   const of = terms.length;
+  // A word is also found inside longer ones -- the house of farmhouse -- as the weakest way
+  // a story can carry it. Only in a one-word search, where it cannot crowd out the others.
+  const inner = !cased && !fragment && of === 1 && !isSign(terms[0]) ? terms[0] : null;
+  // the letters alone: the whole-word pattern is tried first, so houses still counts once,
+  // and a run of word characters on either side made every search three times slower
+  const within = inner && new RegExp(reEsc(inner), "gi");
+  const asWord = inner && new RegExp("\\b" + grown(inner) + "\\b", "gi");
   // Whether a story prints the word as it was typed, or was reached through an
   // inflection or a respelling. Only a one-word search says which, so only a one-word
   // search pays for the test.
@@ -3075,7 +3099,7 @@ function termSearch(query, rows, pages, cased){
   // plural or a possessive comes along, because Gray's is still Gray.
   const res = terms.map(t => isSign(t) ? new RegExp(reEscape(t), "g") : cased
     ? new RegExp("\\b" + reEsc(t) + "(?:\u2019s|'s|s)?\\b", "g")
-    : new RegExp("\\b" + grown(t) + "\\b" + (chars ? "|" + chars.source : ""), "gi"));
+    : new RegExp("\\b" + grown(t) + "\\b" + (chars ? "|" + chars.source : within ? "|" + within.source : ""), "gi"));
   const owner = folioOwners(rows), limits = bounds(rows);
   const byStory = {}, spread = terms.map(() => 0);
   const owns = (code, folio, pi) => {
@@ -3150,6 +3174,8 @@ function termSearch(query, rows, pages, cased){
       code, covers: covered.size, mentions, clusters: hits.length,
       words: [...covered].map(i => terms[i]).sort(),
       literal: asTyped ? hits.some(p => (asTyped.lastIndex = 0, asTyped.test(p.seen))) : undefined,
+      // the word or its family as words, rather than only inside longer ones
+      related: asWord ? hits.some(p => (asWord.lastIndex = 0, asWord.test(p.seen))) : undefined,
       own: asTyped ? hits.reduce((n, p) => n + (p.seen.match(asTyped) || []).length, 0) : undefined,
       exact: exactly ? hits.reduce((n, p) => n + (p.seen.match(exactly) || []).length, 0) : undefined,
       likelihood: likelihood(covered.size, of),
@@ -3201,7 +3227,9 @@ function termSearch(query, rows, pages, cased){
   // lead by how often; those reached only by a related word follow, offered under the
   // fold -- unless nothing prints the word itself, when they are all there is.
   if (of === 1 && ranked.length){
-    ranked.sort((a, b) => (b.literal ? 1 : 0) - (a.literal ? 1 : 0) || (b.exact || 0) - (a.exact || 0)
+    ranked.sort((a, b) => (b.literal ? 1 : 0) - (a.literal ? 1 : 0)
+                          || (b.related === false ? 0 : 1) - (a.related === false ? 0 : 1)
+                          || (b.exact || 0) - (a.exact || 0)
                           || (b.own || 0) - (a.own || 0) || b.mentions - a.mentions);
     const any = ranked.some(r => r.literal);
     const most = ranked[0].literal ? ranked[0].own : ranked[0].mentions;
@@ -3209,18 +3237,21 @@ function termSearch(query, rows, pages, cased){
                                     && (r.literal ? r.own : r.mentions) === most).length === 1;
     ranked.forEach((r, i) => {
       r.likelihood = fragment && r.literal ? (r.exact ? "exact" : "within a word") : sole && !i ? "most hits"
-        : (r.literal ? "carries it" : "a related word");
+        : r.literal ? "carries it" : r.related === false ? "within a word" : "a related word";
       r.worth = r.literal || !any;
     });
   }
   // a word that also begins longer ones: coop is a word, and coöperation begins with it
+  // -- judged against the word's own matcher, not the one that also reaches inside words,
+  // which matches every longer word and would leave nothing to offer
   const longer = !cased && !fragment && typed.length === 1 && !isSign(typed[0])
-    ? wordsBeginning(terms[0], res[0]) : [];
+    ? wordsBeginning(terms[0], asWord || res[0]) : [];
   // and the same word with another ending: cooperation and cooperate, curious and curiosity
   const forms = !cased && !fragment && typed.length === 1 && !isSign(typed[0])
-    ? otherForms(terms[0], res[0]).filter(w => !longer.includes(w)) : [];
+    ? otherForms(terms[0], asWord || res[0]).filter(w => !longer.includes(w)) : [];
   return {query, terms, of, ranked, counts: spread, mended, off, added, cased: cased || undefined,
           fragment: fragment || undefined, within: fragment ? wordsWith(fragment) : undefined,
+          inner: inner || undefined,
           longer: longer.length ? longer : undefined, forms: forms.length ? forms : undefined};
 }
 
@@ -4068,8 +4099,12 @@ function markRegex(only){
   const frag = concept().fragment
     ? "(" + concept().fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")|" : "";
   const lead = frag + signs.map(([t]) => "(" + reEscape(t) + ")|").join("");
-  return {re: new RegExp(lead + (words.length ? "\\b(?:" + body + ")\\b" : "(?!)"), "gi"),
-          of: (frag ? [0] : []).concat(signs.map(([, i]) => i), words.map(([, i]) => i))};
+  // A word found inside a longer one is marked as its own characters, like a fragment, but
+  // tried last: houses is still marked whole, and only farmhouse is marked within.
+  const inner = concept().inner
+    ? "|(" + concept().inner.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")" : "";
+  return {re: new RegExp(lead + (words.length ? "\\b(?:" + body + ")\\b" : "(?!)") + inner, "gi"),
+          of: (frag ? [0] : []).concat(signs.map(([, i]) => i), words.map(([, i]) => i), inner ? [0] : [])};
 }
 
 // Plain wants the characters a keyboard has. The book's curly marks each stand for one
@@ -6765,6 +6800,13 @@ document.addEventListener("click", event => {
   drawChart();
 });
 
+// What a phone says before the first search; the first answer takes its place.
+const WELCOME = `<span class="welcome"><b>Welcome to the ${DOUBLEDAY ? "Canon Sleuth" : "Jane Austen Concordance"}</b>`
+  + `<span>${DOUBLEDAY ? "Every word of the sixty Sherlock Holmes stories, as the Doubleday edition prints them"
+    : "Every word of Jane Austen’s novels and juvenilia"} — here on your phone, with a signal or without one.</span>`
+  + `<span>Type a word, a few words, or a phrase in “quotes”, then tap Search.</span>`
+  + `<span>Tap a result to read it; swipe left or right for the next. Turn the phone sideways for two pages.</span></span>`;
+
 function drawResults(){
   const active = concept();
   if (!active){
@@ -6774,7 +6816,7 @@ function drawResults(){
         + ` to find a passage anywhere in the canon, or use the find field in the panel`
         + ` to look inside this story.`
       // a phone opens on no search at all, so it is not searching anything yet
-      : HANDHELD ? `Search ${EDITION} for a word, or a phrase in quotes.`
+      : HANDHELD ? WELCOME
       : `Searching ${EDITION}\u2026`;
     document.getElementById("rmend").textContent = "";
     return;
@@ -9094,7 +9136,7 @@ const egs = document.getElementById("egs");
 const attr = s => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 const text = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 // a phone is offered no examples, the placeholder's included
-if (HANDHELD) box.placeholder = "Search for a word or a phrase";
+if (HANDHELD) box.placeholder = DOUBLEDAY ? "\u{1F50D} Canonical search engine" : "\u{1F50D} Search for a word or a phrase";
 else if (EXAMPLES.placeholder) box.placeholder = EXAMPLES.placeholder;
 egs.innerHTML = (EXAMPLES.list || []).map(eg =>
   `<li><button type="button" class="try" role="option" aria-selected="false"`

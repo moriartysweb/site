@@ -1,6 +1,12 @@
 {
-  "name": "Sherlock Holmes Canon Sleuth",
+  "name": "Sherlock Holmes Canon Sleuth Search",
   "short_name": "Canon Sleuth",
+  "description": "Search the Sherlock Holmes canon offline: every word of the sixty stories.",
+  "categories": [
+    "books",
+    "education",
+    "reference"
+  ],
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
