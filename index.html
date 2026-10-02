@@ -900,6 +900,8 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 /* Under the header's own breakpoint the panel has no 280px to spare, so the note becomes
    a sheet over the foot of the passage and the track goes back to the edge. */
 @media (max-width:760px){
+  /* the head's controls take rows of their own, or flex squeezes the card to a letter's width */
+  .rhead{flex-wrap:wrap}
   .reading.noted .rwrap{--gutter:1px}
   .notepane{position:absolute;left:0;right:0;bottom:0;z-index:4;flex:0 0 auto;
     max-height:52%;border-left:0;border-top:1px solid var(--rule);background:var(--panel)}
@@ -1371,6 +1373,25 @@ header:has(.simplexline) .pickers{margin-top:26px}
    this way they still take no focus and are not read out. */
 :root.simplex #mending,:root.simplex #collating,
 :root.simplex .filterswitch{visibility:hidden}
+/* A phone has no switch to keep the search still for, so it gives that room back. */
+:root.handheld #mending,:root.handheld #collating,:root.handheld .asking{display:none}
+/* Its field takes a line of its own and its controls are a thumb's size, not a pointer's. */
+:root.handheld .pickers{flex-wrap:wrap}
+:root.handheld .combo{order:-1;flex:1 1 100%}
+:root.handheld .opens{display:none}
+:root.handheld #q{padding:11px 16px}
+:root.handheld #find > button{min-height:44px;padding:8px 22px;font-size:13px}
+:root.handheld .theming > summary{padding:8px 0}
+:root.handheld .rhead{row-gap:4px}
+/* Laid over the text, the find field sat on the very lines a phone opens the passage at,
+   so here it takes a line above them; 16px, or iOS zooms the page to it. */
+:root.handheld .rwrap{flex-direction:column}
+:root.handheld .finder{position:static;order:-1;flex:0 0 auto;opacity:1;width:auto;
+  margin:2px 40px 6px 3px;font-size:16px;padding:7px 14px;box-shadow:none}
+:root.handheld .rbody{padding-top:4px}
+:root.handheld .rhead .theming.inpanel{margin-top:0}
+/* it opens on no search, and an empty frame there reads as a list still coming */
+:root.handheld .results-area:not(:has(.srow, .reading)){display:none}
 /* With the track put away, the passage's own scroll bar is what says where the reader is,
    so it is drawn in the track's colours, which read against either theme's panel. */
 /* Chrome keeps its fading overlay bar wherever the standard properties are set, so they are
@@ -6265,7 +6286,9 @@ function drawResults(){
       ? `Reading <b>${esc(shortTitle(STORY[chosen.code].title))}</b> whole. Search above`
         + ` to find a passage anywhere in the canon, or use the find field in the panel`
         + ` to look inside this story.`
-      : "Searching the printed Doubleday text\u2026";
+      // a phone opens on no search at all, so it is not searching anything yet
+      : HANDHELD ? `Search ${EDITION} for a word, or a phrase in quotes.`
+      : `Searching ${EDITION}\u2026`;
     document.getElementById("rmend").textContent = "";
     return;
   }
@@ -7755,6 +7778,12 @@ function simpleLeafing(){
   return SIMPLE.leafing;
 }
 
+// A phone reads in simple mode with no switch; asking the browser for the desktop site
+// brings full mode back, since that is when it stops calling itself mobile.
+const HANDHELD = typeof navigator !== "undefined" && Boolean(
+  (navigator.userAgentData && navigator.userAgentData.mobile)
+  || /Mobi|iPhone|iPod/.test(navigator.userAgent || ""));
+
 const readingSettings = () => ({leafing, mending, variantsOn, noteLevel, unfolded});
 const useSettings = s => { ({leafing, mending, variantsOn, noteLevel, unfolded} = s); };
 
@@ -7778,7 +7807,8 @@ function setSimplex(on, quiet){
   }
   simplexOn = on;
   document.documentElement.classList.toggle("simplex", on);
-  try { localStorage.setItem("simplex", on ? "on" : "off"); } catch (e) { /* not kept */ }
+  // a phone's simple mode is not the reader's choice, so the desktop site keeps theirs
+  if (!HANDHELD) try { localStorage.setItem("simplex", on ? "on" : "off"); } catch (e) { /* not kept */ }
   drawSwitch();
   if (quiet) return;
   redrawForMode();
@@ -7814,7 +7844,7 @@ function wander(flame){
 // Centred over the search field, built here so neither skeleton has to carry it.
 function drawSwitch(){
   let line = document.getElementById("simplexline");
-  if (!line || !line.querySelector){
+  if ((!line || !line.querySelector) && !HANDHELD){
     const combo = document.querySelector("#find .combo");
     if (!combo || !combo.prepend) return;
     line = document.createElement("label");
@@ -7846,6 +7876,7 @@ function drawSwitch(){
     if (head.dataset.full === undefined) head.dataset.full = head.textContent;
     head.textContent = simplexOn ? "Search Results" : head.dataset.full;
   }
+  if (!line || !line.querySelector) return;
   const icon = line.querySelector(".simplexicon"), box = line.querySelector("input");
   if (icon) icon.textContent = simplexOn ? "❄️" : "\u{1F525}";
   if (box) box.checked = simplexOn;
@@ -7855,7 +7886,8 @@ function drawSwitch(){
 (() => {
   let kept = null;
   try { kept = localStorage.getItem("simplex"); } catch (e) { /* not kept */ }
-  if (kept === "on") setSimplex(true, true);
+  document.documentElement.classList.toggle("handheld", HANDHELD);
+  if (kept === "on" || HANDHELD) setSimplex(true, true);
   else drawSwitch();
 })();
 
@@ -7966,6 +7998,31 @@ document.addEventListener("click", event => {
   const row = event.target.closest && event.target.closest(".srow");
   if (row) pick(picked === row.dataset.code ? null : row.dataset.code);
 });
+
+// The result `step` rows from the open one, in the list's own order, weaker rows included.
+function nextRow(step){
+  const codes = [...document.querySelectorAll(".srow")].map(r => r.dataset.code);
+  const at = codes.indexOf(picked);
+  return at < 0 ? null : codes[at + step] || null;
+}
+
+// A swipe across the open passage reads the next result, or back to the one before.
+let swipe = null;
+document.addEventListener("touchstart", event => {
+  const t = event.touches[0];
+  swipe = event.touches.length === 1 && event.target.closest(".reading")
+    && !event.target.closest("input, button, summary, .notepane")
+    ? {x: t.clientX, y: t.clientY, at: Date.now()} : null;
+}, {passive: true});
+document.addEventListener("touchend", event => {
+  if (!swipe) return;
+  const t = event.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y;
+  const quick = Date.now() - swipe.at < 600;
+  swipe = null;
+  if (!quick || Math.abs(dx) < 60 || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+  const to = nextRow(dx < 0 ? 1 : -1);
+  if (to) pick(to);
+}, {passive: true});
 // ---- two pages ------------------------------------------------------------------
 // Simple mode can lay an open story out as the book lies open: facing leaves, even on
 // the left, at the book's size, the panel's width, or both whole pages at a glance.
@@ -8181,6 +8238,26 @@ function pagesControl(hit){
   return box;
 }
 
+// A phone's choice follows the way it is held and is not kept, so the desktop site keeps the reader's.
+function choosePages(on){
+  if (on === pagesOn) return;
+  const panel = document.querySelector(".reading");
+  const change = () => { pagesOn = on; if (!HANDHELD) keepSetting("simplex-pages", on ? "two" : "one"); };
+  if (!panel || !panel.querySelector || !panel.querySelector(".rbody")) return change();
+  reflow(panel, () => { change(); showPages(); });
+  // measured again now the spreads are drawn: a notebook's page is not the novels'
+  resized(() => {});
+}
+
+// A phone lays the book open when it is turned on its side, and closes it to one page upright.
+const LANDSCAPE = HANDHELD && typeof matchMedia === "function" ? matchMedia("(orientation: landscape)") : null;
+if (LANDSCAPE){
+  pagesOn = Boolean(LANDSCAPE.matches);
+  // life size is wider than a phone, and a spread that scrolls sideways fights the swipe
+  pageSize = "width";
+  if (LANDSCAPE.addEventListener) LANDSCAPE.addEventListener("change", e => choosePages(e.matches));
+}
+
 // The size the open book is drawn at, from the panel it has to fit.
 function fitSpreads(panel){
   const body = panel && panel.querySelector && panel.querySelector(".rbody");
@@ -8249,16 +8326,9 @@ document.addEventListener("click", event => {
   const calib = panel.querySelector(".calib");
   if (calib && !calib.hidden && !event.target.closest(".calib, .calibrate")) calib.hidden = true;
   const way = event.target.closest(".pagespick");
-  if (way && !way.disabled){
-    const on = way.dataset.pages === "two";
-    if (on === pagesOn) return;
-    reflow(panel, () => { pagesOn = on; keepSetting("simplex-pages", on ? "two" : "one"); showPages(); });
-    // measured again now the spreads are drawn: a notebook's page is not the novels'
-    resized(() => {});
-    return;
-  }
+  if (way && !way.disabled) return choosePages(way.dataset.pages === "two");
   const size = event.target.closest(".sizepick");
-  if (size) return resized(() => { pageSize = size.dataset.size; keepSetting("simplex-zoom", pageSize); });
+  if (size) return resized(() => { pageSize = size.dataset.size; if (!HANDHELD) keepSetting("simplex-zoom", pageSize); });
   if (event.target.closest(".calibrate")){
     const calib = panel.querySelector(".calib");
     if (calib) calib.hidden = !calib.hidden;
@@ -8536,7 +8606,9 @@ const egs = document.getElementById("egs");
 // -- before any of it runs -- is all that is required.
 const attr = s => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 const text = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
-if (EXAMPLES.placeholder) box.placeholder = EXAMPLES.placeholder;
+// a phone is offered no examples, the placeholder's included
+if (HANDHELD) box.placeholder = "Search for a word or a phrase";
+else if (EXAMPLES.placeholder) box.placeholder = EXAMPLES.placeholder;
 egs.innerHTML = (EXAMPLES.list || []).map(eg =>
   `<li><button type="button" class="try" role="option" aria-selected="false"`
   + ` data-q="${attr(eg.q)}">${text(eg.q)}<i>${text(eg.note)}</i></button></li>`).join("");
@@ -8544,6 +8616,7 @@ const opens = document.getElementById("opens");
 const combo = box.closest(".combo");
 
 function showEgs(on){
+  on = on && !HANDHELD;
   egs.hidden = !on;
   combo.classList.toggle("open", on);
   box.setAttribute("aria-expanded", String(on));
@@ -8613,8 +8686,9 @@ document.addEventListener("click", event => {
 // Open on a real search rather than an empty shell, run through the same path. Which
 // search that is belongs to the corpus and not to this file: the canon opens on the
 // Speckled Band's three objects, and Austen on her three carriages. Hard-coded here, it
-// sent the Austen page looking for a bell-pull.
-const OPENING = EXAMPLES.opening || EXAMPLES.placeholder || "";
+// sent the Austen page looking for a bell-pull. A phone opens empty, its first moments
+// spent on the reader's question rather than the page's.
+const OPENING = HANDHELD ? "" : EXAMPLES.opening || EXAMPLES.placeholder || "";
 box.value = OPENING;
 drawResults(); drawChart();
 search(OPENING);

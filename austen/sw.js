@@ -2,7 +2,7 @@
 // web/site.py fills in the three constants; a new build changes CACHE, which is what
 // makes the browser take the new files and drop the old ones.
 const PREFIX = "austen-";
-const CACHE = PREFIX + "880d58728a94";
+const CACHE = PREFIX + "36bda7c9221b";
 const FILES = ["./", "index.html", "austen-pages.json", "austen-notes-extra.json", "austen-notes-more.json", "austen-180.png", "austen-192.png", "austen-512.png", "austen.svg", "manifest.webmanifest"];
 const FONTS = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Lora:ital,wght@0,400;1,400&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Grenze+Gotisch:wght@400;500&family=Pinyon+Script&display=swap";
 
