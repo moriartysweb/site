@@ -37,8 +37,10 @@ img{max-width:100%}
   --k0:#FBE7A2; --k1:#C4EBD3; --k2:#CFE1FA; --k3:#F8D2DD; --k4:#FAD9BC; --k5:#DFD5F4;
   --s0:#E0B23C; --s1:#4FB98A; --s2:#4A86D8; --s3:#D96A93; --s4:#DB8A4A; --s5:#8A72D8;
   --tick-edge:rgba(12,14,20,.28); --find:#FFD166;
-  --note:#B0409B; --note-soft:#F7E4F3;
+  --note:#3E9A5F; --note-soft:#E1F3E7;
   --vary:#2F6F9F; --vary-soft:#E2EFF8; --vary-typo:#B3541E;
+  /* the resting wash on a variant: darker than the paper on the authentic leaf, gray on the others */
+  --wash-a:rgba(70,45,0,.11); --wash-p:rgba(90,90,90,.13);
   /* The ink a marked word is set in. The body's ink by default, because a wash follows
      the room and so does the writing on it. The authentic leaf overrides it: its washes
      are paper's and keep paper's colour whatever the hour, so their ink must too. */
@@ -55,8 +57,9 @@ img{max-width:100%}
   --k0:#5C4B14; --k1:#1E4433; --k2:#1C3A57; --k3:#4B2331; --k4:#523118; --k5:#332757;
   --s0:#F2CE5E; --s1:#59D69C; --s2:#6BA6EE; --s3:#EE86AA; --s4:#F0A063; --s5:#A895F0;
   --tick-edge:rgba(255,255,255,.30); --find:#FFC14D;
-  --note:#F09ADB; --note-soft:#3D2138;
+  --note:#7FD69A; --note-soft:#1E3A2A;
   --vary:#7FC1EC; --vary-soft:#1B2E3D; --vary-typo:#E89A5F;
+  --wash-a:rgba(0,0,0,.22); --wash-p:rgba(200,200,200,.14);
   --aged:#2B2921; --aged-ink:#E7DFC6; --aged-rule:#4A4534; --flag:#FF8A80; --front:#262A38; --front-edge:#3C4257;
   --divide:rgba(10,12,20,.42); --divide-strong:rgba(10,12,20,.8); --band:rgba(10,12,20,.34);
 }}
@@ -69,8 +72,9 @@ img{max-width:100%}
   --k0:#5C4B14; --k1:#1E4433; --k2:#1C3A57; --k3:#4B2331; --k4:#523118; --k5:#332757;
   --s0:#F2CE5E; --s1:#59D69C; --s2:#6BA6EE; --s3:#EE86AA; --s4:#F0A063; --s5:#A895F0;
   --tick-edge:rgba(255,255,255,.30); --find:#FFC14D;
-  --note:#F09ADB; --note-soft:#3D2138;
+  --note:#7FD69A; --note-soft:#1E3A2A;
   --vary:#7FC1EC; --vary-soft:#1B2E3D; --vary-typo:#E89A5F;
+  --wash-a:rgba(0,0,0,.22); --wash-p:rgba(200,200,200,.14);
   --aged:#2B2921; --aged-ink:#E7DFC6; --aged-rule:#4A4534; --flag:#FF8A80; --front:#262A38; --front-edge:#3C4257;
   --divide:rgba(10,12,20,.42); --divide-strong:rgba(10,12,20,.8); --band:rgba(10,12,20,.34);
 }
@@ -371,6 +375,39 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 @media (max-width:760px){
   .cites{left:12px;right:12px;bottom:12px;width:auto}
 }
+
+/* the toast that says a selection was copied, the end of it, and where it is from */
+.copytoast{position:fixed;left:50%;bottom:84px;transform:translate(-50%,calc(100% + 120px));z-index:80;
+  width:min(440px,calc(100vw - 24px));padding:10px 14px 9px;border-radius:12px;
+  background:var(--panel);color:var(--ink);border:1px solid var(--rule);cursor:pointer;
+  box-shadow:0 10px 32px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:3px;
+  pointer-events:none;
+  /* away it slides down out of the window, and a little faster than it came */
+  transition:transform .2s ease-in}
+.copytoast.on{transform:translate(-50%,0);pointer-events:auto;transition:transform .3s cubic-bezier(.2,.8,.25,1)}
+.ctsay{font:600 13px "IBM Plex Sans",sans-serif;color:var(--hit-strong)}
+.ctpreview{font:400 15px/1.35 "EB Garamond",Lora,Georgia,serif;font-style:italic;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ctwhere{font:400 11.5px "IBM Plex Mono",monospace;color:var(--ink-faint)}
+.ctauto{display:flex;align-items:center;gap:6px;margin-top:3px;padding-top:5px;
+  border-top:1px solid var(--rule-soft);font:400 12px "IBM Plex Sans",sans-serif;
+  color:var(--ink-soft);cursor:pointer}
+.ctauto input{accent-color:var(--hit);margin:0}
+
+/* the whole of what was copied, in a window of its own */
+.copyview{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  background:rgba(8,10,16,.55);padding:16px}
+.copyview[hidden]{display:none}
+.cvbox{position:relative;width:min(720px,100%);max-height:min(80vh,640px);display:flex;flex-direction:column;
+  background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:14px;
+  box-shadow:0 18px 60px rgba(0,0,0,.5);padding:16px 20px 18px}
+.cvhead{margin:0 0 10px;font:600 13px "IBM Plex Sans",sans-serif;color:var(--hit-strong)}
+.cvtext{overflow-y:auto;background:#ffffff;color:#1b1b1b;border-radius:8px;padding:16px 20px;
+  user-select:text;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.cvtext a{color:#1a5fb4}
+.cvx{position:absolute;top:8px;right:10px;width:30px;height:30px;border:0;border-radius:50%;
+  background:none;color:var(--ink-soft);font-size:22px;line-height:1;cursor:pointer}
+.cvx:hover,.cvx:focus-visible{background:var(--rule-soft);color:var(--ink);outline:none}
 .reading{position:fixed;top:14px;left:50%;transform:translateX(-50%);
   width:min(1160px,calc(100vw - 60px));z-index:20;background:var(--panel);
   border:1px solid var(--ink);border-radius:8px;padding:16px 44px 16px 18px;
@@ -818,28 +855,37 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 /* The leaf a passage is on, for the setting that leaves the running heads off. It
    stands in a margin of its own so the text column is the same width whether a line
    is numbered or not. */
-.reading.legibility .passage{position:relative;padding-right:46px}
-.pfolio{position:absolute;right:0;top:0;width:36px;
-  display:flex;align-items:center;justify-content:flex-end;
+.reading.legibility .passage{position:relative;padding-right:58px}
+.pfolio{position:absolute;right:0;top:0;width:48px;
+  display:block;text-align:right;
   font:400 11px "IBM Plex Mono",ui-monospace,monospace;
   letter-spacing:.02em;color:var(--ink-quiet);font-style:normal;white-space:nowrap;
   font-variant-numeric:tabular-nums;user-select:none}
+/* says what the number is, beside a match number like 1/3 */
+.pfolio::before{content:"p."}
 
 /* ---- rare words, and the note a click on one opens ------------------------- */
 /* A button, so it is reachable by tab and taken by enter without a keydown handler of
    its own. font/line-height/baseline are load-bearing: a button's own line-height would
    change the leading of every line that happens to hold a rare word, and the passage is
    justified. */
+:root{--book:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 6.5C10.5 5 8 4 4 4v14c4 0 6.5 1 8 2.5 1.5-1.5 4-2.5 8-2.5V4c-4 0-6.5 1-8 2.5zM12 8.2c1-.9 2.3-1.6 6-1.9v9.6c-2.6.3-4.6 1-6 1.9z'/%3E%3C/svg%3E")}
 .rare{display:inline;font:inherit;line-height:inherit;vertical-align:baseline;
   color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;
-  text-decoration:underline wavy var(--note);text-decoration-thickness:1px;
-  text-underline-offset:3px;-webkit-text-decoration:underline wavy var(--note)}
+  text-decoration:underline dotted var(--note);text-decoration-thickness:1.5px;
+  text-underline-offset:3px;-webkit-text-decoration:underline dotted var(--note)}
 .rare:hover,.rare[aria-expanded="true"]{background:var(--note-soft);border-radius:2px}
 /* a searched word the page also has a note about: the hit's colour, and the note's line */
 .rbody mark.noted{cursor:pointer;
-  text-decoration:underline wavy var(--note);text-decoration-thickness:1px;
-  text-underline-offset:3px;-webkit-text-decoration:underline wavy var(--note)}
+  text-decoration:underline dotted var(--note);text-decoration-thickness:1.5px;
+  text-underline-offset:3px;-webkit-text-decoration:underline dotted var(--note)}
 .rbody mark.noted:focus-visible{outline:2px solid var(--note);outline-offset:2px}
+/* A small book after a word that has a definition. Out of flow -- it takes no width, so
+   the justified line does not reflow -- and drawn as a mask so it follows --note. */
+.rbody .rare,.rbody mark.noted{position:relative;z-index:0}
+.rbody .rare::after,.rbody mark.noted::after{content:"";position:absolute;
+  top:.12em;right:-.3em;z-index:-1;width:.56em;height:.56em;background:var(--note);pointer-events:none;
+  -webkit-mask:var(--book) center/contain no-repeat;mask:var(--book) center/contain no-repeat}
 .rare:focus-visible{outline:2px solid var(--note);outline-offset:2px;border-radius:2px}
 
 /* Where another printing reads differently. A dotted line rather than the note's wavy
@@ -848,13 +894,46 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
    .rare: the passage is justified, and a button with padding would reflow the line.
    A typo of the book's own takes the correction colour instead -- that mark is about
    THIS edition, not another one. */
+.reading.authentic{--wash:var(--wash-a)}
+.reading.legibility,.reading.plain{--wash:var(--wash-p)}
 .vary{display:inline;font:inherit;line-height:inherit;vertical-align:baseline;
-  color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;
+  color:inherit;background:var(--wash,none);border:0;padding:0;margin:0;cursor:pointer;border-radius:2px;
   text-decoration:underline dotted var(--vary);text-decoration-thickness:1.5px;
   text-underline-offset:3px;-webkit-text-decoration:underline dotted var(--vary)}
-.vary.typo{text-decoration-color:var(--vary-typo);
-  -webkit-text-decoration:underline dotted var(--vary-typo)}
+/* A misprint of this edition's own: wavy and orange, tinted so it reads as another kind
+   of mark than a blue one in either leaf. */
+.vary.typo{background:color-mix(in srgb,var(--vary-typo) 14%,transparent);
+  text-decoration-style:wavy;text-decoration-color:var(--vary-typo);text-decoration-thickness:1px;
+  -webkit-text-decoration:underline wavy var(--vary-typo)}
+/* A variant on a word that is already a search hit or a note: the same element, so it
+   keeps its own colour and click, and takes the variant's line. */
+.varied{text-decoration:underline dotted var(--vary);text-decoration-thickness:1.5px;
+  text-underline-offset:3px;-webkit-text-decoration:underline dotted var(--vary)}
+.varied.typo{text-decoration-style:wavy;text-decoration-color:var(--vary-typo);text-decoration-thickness:1px;
+  -webkit-text-decoration:underline wavy var(--vary-typo)}
+/* Words the other printing has and the Doubleday lacks: a bar where they would go, and
+   nothing on the word itself, which is the same in both. */
+.vary.gap,.vary.gap.typo{background:none;text-decoration:none;position:relative}
+.gap::after,.gapped::after{content:"";position:absolute;right:-.12em;top:.12em;bottom:.02em;
+  width:2px;border-radius:1px;background:color-mix(in srgb,var(--flag) 75%,transparent);pointer-events:none}
+.gapped{position:relative}
+.vary.matched,.vary.gap.matched{background:var(--k0);text-decoration:underline dotted var(--vary);
+  text-decoration-thickness:1.5px;text-underline-offset:3px}
 .vary:hover,.vary[aria-expanded="true"]{background:var(--vary-soft);border-radius:2px}
+/* what the Strand (or Beeton's, or Lippincott's) prints, shown beside the word on hover */
+.varytip{position:fixed;z-index:50;max-width:320px;padding:9px 12px;border-radius:8px;
+  background:var(--panel);color:var(--ink);border:1px solid var(--rule);
+  box-shadow:0 6px 22px rgba(0,0,0,.25);font:400 13px/1.45 "IBM Plex Sans",sans-serif;
+  pointer-events:none}
+.varytip[hidden]{display:none}
+.ctxline{display:block;margin:0 0 5px;font:400 15px/1.4 "EB Garamond",Lora,Georgia,serif}
+.ctxline i{display:block;font:500 11px "IBM Plex Sans",sans-serif;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-faint)}
+.ctxline b{font-weight:600;border-bottom:2px solid var(--vary)}
+.ctxline b.added{color:color-mix(in srgb,var(--flag) 85%,var(--ink));border-bottom-color:var(--flag)}
+.ctxline em{font-style:italic;color:var(--ink-faint)}
+.varytip small{display:block;color:var(--ink-faint);margin-top:3px}
+.varytip em{display:block;font-style:normal;margin-top:6px;padding-top:6px;border-top:1px solid var(--rule-soft)}
 .vary:focus-visible{outline:2px solid var(--vary);outline-offset:2px;border-radius:2px}
 
 /* Between the prose and the track: the track, the lens and the page turns keep the
@@ -909,7 +988,7 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 
 /* The slider: off, then each band of rarity in turn. A range because the stops are
    ordered and the reader is choosing how much, not which. */
-.notedial{display:flex;align-items:center;gap:7px;margin-left:auto}
+.notedial{display:flex;align-items:center;gap:7px;margin-top:2px}
 .notelab{font:500 11px "IBM Plex Sans",sans-serif;color:var(--ink-soft);
   text-transform:uppercase;letter-spacing:.04em}
 .notelevel{width:88px;accent-color:var(--note);cursor:pointer}
@@ -922,6 +1001,48 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 .notecats{margin:6px 0 0;font-size:11px;letter-spacing:.04em;text-transform:lowercase;
   color:var(--note);opacity:.9}
 .notecats[hidden]{display:none}
+
+/* ---- the key to the marks, and a switch for each ---------------------------- */
+.hlpick{margin-left:auto;font:500 12px "IBM Plex Sans",sans-serif;color:var(--ink-soft);
+  background:none;border:0;padding:0 0 2px;cursor:pointer;white-space:nowrap;
+  text-decoration:underline dotted;text-underline-offset:3px}
+.hlpick:hover,.hlpick[aria-expanded="true"]{color:var(--ink)}
+.hlpick:focus-visible{outline:2px solid var(--hit-strong);outline-offset:2px;border-radius:2px}
+.hlpop{position:fixed;z-index:60;width:min(440px,calc(100vw - 16px));
+  overflow-y:auto;background:var(--panel);color:var(--ink);border:1px solid var(--rule);
+  border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:8px 12px 3px}
+.hlpop[hidden]{display:none}
+.hlhead{margin:0 0 2px;font:600 11px "IBM Plex Sans",sans-serif;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-faint)}
+.hlrow{display:grid;grid-template-columns:104px 1fr auto;gap:10px;align-items:center;
+  padding:5px 0;border-top:1px solid var(--rule-soft)}
+.hlsample{font:400 15px/1.35 "EB Garamond",Lora,Georgia,serif;white-space:nowrap}
+.hlwhat{display:flex;flex-direction:column;gap:0;min-width:0}
+.hlwhat b{font:600 12.5px/1.3 "IBM Plex Sans",sans-serif}
+.hlwhat>span{font:400 11.5px/1.3 "IBM Plex Sans",sans-serif;color:var(--ink-soft)}
+.hlswitch{accent-color:var(--hit);width:16px;height:16px;margin:0;cursor:pointer}
+.hlnum{font:600 10px "IBM Plex Mono",monospace;color:var(--s0);vertical-align:super}
+/* the real marks, as samples in the key */
+.hlpop .rare,.hlpop .vary{cursor:default}
+.hlpop .rare{position:relative;z-index:0}
+.hlpop .rare::after{content:"";position:absolute;top:.12em;right:-.3em;z-index:-1;width:.56em;height:.56em;
+  background:var(--note);-webkit-mask:var(--book) center/contain no-repeat;mask:var(--book) center/contain no-repeat}
+.hlpop .vary.gap{padding-right:.3em}
+:root.simplex .hlpick{display:none}
+
+/* A hit switched off keeps its place -- the scroll track and the arrow keys walk marks --
+   and loses only its paint. */
+.rbody mark.quiet,.rbody mark.akin.quiet{background:none!important;box-shadow:none;color:inherit}
+/* which occurrence of the word this is, in its own color */
+.rbody mark.k0{--tc:var(--s0)} .rbody mark.k1{--tc:var(--s1)} .rbody mark.k2{--tc:var(--s2)}
+.rbody mark.k3{--tc:var(--s3)} .rbody mark.k4{--tc:var(--s4)} .rbody mark.k5{--tc:var(--s5)}
+.rbody mark[data-n]{position:relative}
+.rbody mark[data-n]::before{content:"match " attr(data-n);position:absolute;left:0;top:-.6em;
+  font:600 9.5px/1 "IBM Plex Mono",monospace;letter-spacing:0;color:var(--tc,var(--hit-strong));
+  pointer-events:none;white-space:nowrap}
+
+/* a row of the key that is a habit and not a mark: no sample, just the switch */
+.hlrow.hlplain{grid-template-columns:1fr auto;cursor:pointer}
 mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
 mark.k0,.termkey.k0{background:var(--k0)} mark.k1,.termkey.k1{background:var(--k1)} mark.k2,.termkey.k2{background:var(--k2)}
 mark.k3,.termkey.k3{background:var(--k3)} mark.k4,.termkey.k4{background:var(--k4)} mark.k5,.termkey.k5{background:var(--k5)}
@@ -1983,7 +2104,7 @@ footer{margin-top:26px;padding-top:13px;border-top:1px solid var(--rule);color:v
   --ink-quiet:#A0977F; --rule:#3B3629; --rule-soft:#2B2720; --track:#3B3629; --thumb:#8C8471;
   --hit:#5CE0A8; --hit-strong:#8BF0C4; --hit-soft:#1E3A30; --mark:#6B5718; --find:#7A5A10;
   --k0:#6B5718; --k1:#22513C; --k2:#204465; --k3:#57293A; --k4:#5E381C; --k5:#3B2D66;
-  --tick-edge:rgba(255,255,255,.30); --note-soft:#3D2138}
+  --tick-edge:rgba(255,255,255,.30); --note:#7FD69A; --note-soft:#1E3A2A; --wash-a:rgba(0,0,0,.22); --wash-p:rgba(200,200,200,.14)}
 
 /* ---- the light switch ------------------------------------------------------ */
 /* Sits in the panel's head beside the style picker, and only where there is a candle
@@ -2057,6 +2178,8 @@ footer{margin-top:26px;padding-top:13px;border-top:1px solid var(--rule);color:v
    the margin kept for it is wider too. */
 .reading.legibility .passage{padding-right:64px}
 .reading.legibility .pfolio{width:56px}
+/* already "1 \00b7 145": a volume and a page, which a "p." in front would muddle */
+.pfolio::before{content:none}
 </style>
 <div class="scroller"><div class="wrap">
 <header>
@@ -2625,6 +2748,8 @@ const extractOf = (f, bi) => (EXTRACTS[f] || []).find(r => bi >= r[0] && bi <= r
 // What the press set in italic, by folio and block: [offset, length]. The scan's OCR
 // kept no font, so these are carried across from a typeset setting of the same text.
 const ITALICS = DATA.italics || {};
+// {folio: {block: [first line, gaps between the printed lines' starts]}} -- see build_dd_lines.py
+const LINES = DATA.lines || {};
 // an opening's run of small capitals, folio -> block -> [start, length] (fix_dd_smallcaps.py)
 const SMALLCAPS_AT = DATA.smallcaps || {};
 // Where this book differs from the magazine that printed the story first, and where it
@@ -2650,6 +2775,19 @@ try {
   variantsOn = localStorage.getItem("variants") === "yes";
 } catch (e) { /* a private window, or storage refused: the default stands */ }
 const anyVariants = () => Object.keys(COLLATED).length || Object.keys(BOOK_TYPOS).length;
+
+// Which kinds of mark the reading panel draws, one switch each: the key to the page is
+// also where they are turned off. The rare words have their own dial (`noteLevel`). The
+// three for other printings start from what the Variants control last said, so a reader
+// who had variants on still sees them; a change to any of them keeps the control honest.
+const hl = {hits: true, find: true, numbers: true, autocopy: true,
+            printings: variantsOn, insertions: variantsOn, typos: variantsOn};
+try { Object.assign(hl, JSON.parse(localStorage.getItem("highlights") || "{}")); }
+catch (e) { /* a private window, or storage refused: the defaults stand */ }
+variantsOn = hl.printings || hl.insertions || hl.typos;
+const saveHighlights = () => {
+  try { localStorage.setItem("highlights", JSON.stringify(hl)); } catch (e) { /* not kept */ }
+};
 
 // Notes keyed by more than one word -- "Persian slipper", "Baker Street Irregulars".
 // Longest first, so the longer phrase is matched before any word inside it.
@@ -2983,7 +3121,68 @@ const tally = n => n >= 1e6 ? (n / 1e6).toFixed(n < 1e7 ? 1 : 0) + " million"
                   : n >= 1e4 ? Math.round(n / 1e3) + ",000"
                   : n.toLocaleString();
 
+// When the Doubleday has nothing, the places Moskowitz recorded another printing differing
+// are the next best answer -- and only then, so a variant never crowds out the book itself.
 function searchCanon(query, rows, pages){
+  const found = searchDoubleday(query, rows, pages);
+  // A word asked for in its capital and not printed so is an answer, not a near miss:
+  // the other printings do not widen it either.
+  if (found && (found.ranked.length || found.cased)) return found;
+  return variantSearch(query, rows, pages, found) || found;
+}
+
+const plain = s => foldAsked(unaccent(s)).toLowerCase().replace(/[^a-z0-9\u00A3]+/g, " ").trim();
+
+// The query read against what the other printings print. A quotation must stand in order
+// in one reading; otherwise every term must be in it. Returned shaped like termSearch's
+// answer, so the cards, the chart and the reading panel need nothing new.
+function variantSearch(query, rows, pages, empty){
+  const quoted = QUOTED.exec(String(query));
+  const asked = quoted ? [plain(quoted[1])] : queryTerms(query).map(plain);
+  if (!asked.length || !asked[0]) return null;
+  const hit = quoted
+    ? text => (" " + plain(text) + " ").includes(" " + asked[0] + " ")
+    : text => { const t = " " + plain(text) + " "; return asked.every(a => t.includes(" " + a + " ")); };
+  const owner = folioOwners(rows), limits = bounds(rows);
+  const owns = (code, folio, pi) => {
+    const b = limits[code] && limits[code][folio];
+    return !b || (pi >= b[0] && pi < b[1]);
+  };
+  const byStory = {};
+  Object.keys(COLLATED).forEach(f => {
+    const codes = owner[+f];
+    if (!codes) return;
+    Object.keys(COLLATED[f]).forEach(bi => COLLATED[f][bi].forEach(([ours, theirs, , side]) => {
+      if (!hit(theirs)) return;
+      codes.forEach(code => { if (owns(code, +f, +bi))
+        (byStory[code] || (byStory[code] = [])).push({folio: +f, pi: +bi, ours, side}); });
+    }));
+  });
+  const stories = rows.flatMap(r => r.stories);
+  const ranked = Object.keys(byStory).map(code => {
+    const story = stories.find(s => s.code === code);
+    const span = story.endPage - story.page + 1;
+    const hits = byStory[code].sort((a, b) => a.folio - b.folio || a.pi - b.pi);
+    const at = p => +Math.min(0.999, Math.max(0, (p.folio - story.page
+      + (p.pi + 0.5) / Math.max(1, ((pages[p.folio] || {}).b || []).length)) / span)).toFixed(4);
+    const top = hits[0];
+    const block = (((pages[top.folio] || {}).b || [])[top.pi] || [0, ""])[1];
+    return {code, covers: asked.length, mentions: hits.length, clusters: hits.length,
+      words: queryTerms(query), worth: true,
+      likelihood: "variant match \u00B7 " + (VARIANT_SAYS[top.side] || "another printing"),
+      best: {page: top.folio, pi: top.pi, at: at(top), covers: asked.length, text: block},
+      spots: hits.slice(0, 60).map(p => ({at: at(p), page: p.folio, pi: p.pi, n: asked.length,
+        t: asked.map((_, i) => i), text: snippet(
+          (((pages[p.folio] || {}).b || [])[p.pi] || [0, ""])[1], new RegExp(reEsc(p.ours), "i"))}))};
+  });
+  if (!ranked.length) return null;
+  ranked.sort((a, b) => b.mentions - a.mentions || a.code.localeCompare(b.code));
+  const terms = queryTerms(query);
+  return {...(empty || {}), query, terms, of: terms.length, ranked, variant: true,
+          counts: terms.map(() => 0)};
+}
+
+function searchDoubleday(query, rows, pages){
   // Asked for in quotation marks and in capitals, the reader means that word as
   // written, so it is tried that way first. Where the book prints it, that is the
   // whole answer: a narrower question honestly answered. Where it prints none, the
@@ -4175,7 +4374,7 @@ function hitSpans(text, at){
     const looking = findRegex();
     if (looking){
       looking.lastIndex = 0;
-      if (looking.test(unaccent(word))) spans.push({at: start, len, open: `<mark class="find">`, shut: "</mark>"});
+      if (looking.test(unaccent(word))) spans.push({at: start, len, open: `<mark class="find${hl.find ? "" : " quiet"}">`, shut: "</mark>"});
       continue;
     }
     if (!concept()) continue;
@@ -4186,7 +4385,8 @@ function hitSpans(text, at){
     const group = m.slice(1).findIndex(g => g !== undefined);
     const term = group < 0 ? 0 : of[group];
     if (isolated !== null && isolated !== term) continue;
-    spans.push({at: start, len, open: `<mark class="${markClass(term)}">`,
+    spans.push({at: start, len, term, shown: true,
+                open: `<mark class="${markClass(term)}${hl.hits ? "" : " quiet"}">`,
                 shut: "</mark>"});
   }
   let m;
@@ -4196,7 +4396,7 @@ function hitSpans(text, at){
   const looking = findRegex();
   if (looking){
     while ((m = looking.exec(seen)) !== null)
-      spans.push({at: m.index, len: m[0].length, open: `<mark class="find">`, shut: "</mark>"});
+      spans.push({at: m.index, len: m[0].length, open: `<mark class="find${hl.find ? "" : " quiet"}">`, shut: "</mark>"});
     return spans;
   }
   const {re, of} = markRegex();
@@ -4208,11 +4408,61 @@ function hitSpans(text, at){
     // reader just asked to stop seeing would come back wearing another coat.
     const show = isolated === null || isolated === term;
     const akin = isOwn(term, group, m[0]) ? "" : " akin";
-    spans.push({at: m.index, len: m[0].length,
-                open: show ? `<mark class="${markClass(term)}${akin}">` : "",
+    // switched off, a hit is still a mark -- the scroll track and the arrow keys walk
+    // marks -- and only its paint goes
+    spans.push({at: m.index, len: m[0].length, term, shown: show,
+                open: show ? `<mark class="${markClass(term)}${akin}${hl.hits ? "" : " quiet"}">` : "",
                 shut: show ? "</mark>" : ""});
   }
+  numberHits(spans, at);
   return spans;
+}
+
+// Where each occurrence of each searched word stands in the whole story, so a mark can
+// say 2/3. Counted by running hitSpans itself over every block of the story, which is
+// what makes the number agree with the marks and not with a second opinion about what
+// counts as a match; kept for as long as the query, the reading and the story hold.
+let counting = false, counted = null;
+
+function numbering(code){
+  const c = concept();
+  const key = [code, mending, isolated, leafing].join("|");
+  if (counted && counted.c === c && counted.key === key) return counted;
+  const story = DATA.rows.flatMap(r => r.stories).find(x => x.code === code);
+  const limits = (bounds(DATA.rows)[code]) || {};
+  const before = new Map(), totals = [];
+  counted = {c, key, before, totals};
+  if (!story || story.text) return counted;
+  counting = true;
+  try {
+    for (let f = story.page; f <= story.endPage; f++){
+      ((PAGES[f] || {}).b || []).forEach(([, raw], bi) => {
+        const b = limits[f];
+        if (b && !(bi >= b[0] && bi < b[1])) return;
+        const here = hitSpans(asSet(mend(f, bi, raw)), {f, bi}).filter(sp => sp.shown);
+        if (!here.length) return;
+        before.set(f + ":" + bi, totals.slice());
+        here.forEach(sp => { totals[sp.term] = (totals[sp.term] || 0) + 1; });
+      });
+    }
+  } finally { counting = false; }
+  return counted;
+}
+
+function numberHits(spans, at){
+  const c = concept();
+  if (counting || !hl.numbers || !at || !c || c.variant || !picked) return;
+  const info = numbering(picked);
+  const behind = info.before.get(at.f + ":" + at.bi);
+  if (!behind) return;
+  const seen = [];
+  spans.filter(sp => sp.shown).sort((a, b) => a.at - b.at).forEach(sp => {
+    seen[sp.term] = (seen[sp.term] || 0) + 1;
+    const total = info.totals[sp.term];
+    // a word that occurs once has no place in a series
+    if (total > 1) sp.open = sp.open.replace(/^<mark /,
+      `<mark data-n="${(behind[sp.term] || 0) + seen[sp.term]}/${total}" `);
+  });
 }
 
 // Accented letters are part of the word: both books print outré, débris, naiveté and
@@ -4325,7 +4575,10 @@ function noteSpans(text, taken, at){
 // mark in the wrong place is worse than no mark.
 function variantSpans(text, taken, at){
   const spans = [];
-  if (!variantsOn || !at) return spans;
+  // A variant match is an answer made of these marks, so they are shown for it
+  const found = concept() && concept().variant;
+  if (!at || (simplexOn && !found)) return spans;
+  const wanted = found ? concept().terms : [];
   for (const [sheet, kind] of [[COLLATED, "vary"], [BOOK_TYPOS, "typo"]]){
     const rows = ((sheet[at.f] || {})[at.bi] || []);
     for (const [ours, theirs, nth, side, grade, said, aside] of rows){
@@ -4337,19 +4590,36 @@ function variantSpans(text, taken, at){
       }
       if (start < 0) continue;
       const end = start + ours.length;
+      // The other printing has words after this one that the Doubleday lacks: the mark is
+      // a bar at that point, and the words are what it would read there.
+      const ins = kind === "vary" && theirs.startsWith(ours + " ") ? theirs.slice(ours.length + 1) : "";
+      if (!found && !(kind === "typo" ? hl.typos : ins ? hl.insertions : hl.printings)) continue;
+      const attrs = (ins ? ` data-ins="${esc(ins)}"` : "")
+                  + ` data-vary="${esc(theirs)}" data-side="${esc(side)}"`
+                  + ` data-grade="${esc(grade)}" data-kind="${kind}"`
+                  // what the first printing has, on a misprint row: it is the
+                  // evidence for the correction, not decoration
+                  + (said ? ` data-said="${esc(said)}"` : "")
+                  // Moskowitz's own note on this place, where he wrote one
+                  + (aside ? ` data-aside="${esc(aside)}"` : "");
+      // A word that is already a hit or a note carries the variant on its own element:
+      // dropping it would leave a searched-for misprint with no sign of one.
+      const host = [...taken, ...spans].find(s => s.at <= start && end <= s.at + s.len
+                                                   && /^<(mark|button)/.test(s.open));
+      if (host){
+        if (!host.open.includes("data-vary"))
+          host.open = host.open.replace(/^<(mark|button)/, `$&${attrs}`)
+                               .replace(/class="/, `class="${ins ? "gapped" : "varied"}${kind === "typo" ? " typo" : ""} `);
+        continue;
+      }
       // no nesting, ever -- the same rule the rare-word notes keep
       if (taken.some(s => s.at < end && start < s.at + s.len)) continue;
       if (spans.some(s => s.at < end && start < s.at + s.len)) continue;
       spans.push({at: start, len: ours.length,
-                  open: `<button type="button" class="vary${kind === "typo" ? " typo" : ""}"`
-                      + ` aria-expanded="false"`
-                      + ` data-vary="${esc(theirs)}" data-side="${esc(side)}"`
-                      + ` data-grade="${esc(grade)}" data-kind="${kind}"`
-                      // what the first printing has, on a misprint row: it is the
-                      // evidence for the correction, not decoration
-                      + (said ? ` data-said="${esc(said)}"` : "")
-                      // Moskowitz's own note on this place, where he wrote one
-                      + (aside ? ` data-aside="${esc(aside)}"` : "") + `>`,
+                  open: `<button type="button" class="vary${kind === "typo" ? " typo" : ""}${ins ? " gap" : ""}`
+                      // the words the reader searched for, in the other printing's reading
+                      + `${wanted.length && wanted.every(w => plain(theirs).split(" ").includes(plain(w))) ? " matched" : ""}"`
+                      + ` aria-expanded="false"${attrs}>`,
                   shut: "</button>"});
     }
   }
@@ -5257,7 +5527,12 @@ function markFolios(panel){
   foldLines(body);
   body.querySelectorAll(".pfolio").forEach(tag => {
     const para = tag.parentElement;
-    if (para) tag.style.height = (parseFloat(getComputedStyle(para).lineHeight) || 26) + "px";
+    if (para){
+      // the box is one text line tall and the number is centred in it by its line-height
+      const line = (parseFloat(getComputedStyle(para).lineHeight) || 26) + "px";
+      tag.style.height = line;
+      tag.style.lineHeight = line;
+    }
   });
 }
 
@@ -5771,13 +6046,123 @@ function extraNotes(){
   })());
 }
 
+// One row per reason a word is marked: what it looks like, in the page's own styles, and
+// what it means. A kind the book has nothing of is not listed -- the key says only what
+// can appear. The sample is the real thing, so the key cannot drift from the page.
+function highlightRows(){
+  const rows = [
+    ["hits", "Search matches", `<mark class="k0">cousin</mark> <mark class="k1">Holmes</mark>`,
+     "Words you searched for"],
+    ["find", "Find in passage", `<mark class="find">word</mark>`,
+     "Matches from the find box"],
+    ["numbers", "Match numbers", `<span class="hlnum">match 2/3</span>`,
+     "Which occurrence in the story"]];
+  if (Object.keys(NOTES).length) rows.push(
+    ["rare", "Rare words", `<span class="rare">tempestuous</span>`,
+     "Words with a definition"]);
+  if (anyVariants()) rows.push(
+    ["printings", "Other printings", `<span class="vary">promises to end</span>`,
+     "Another printing differs"],
+    ["insertions", "Insertions", `<span class="vary gap">with</span>`,
+     "Words only another printing has"],
+    ["typos", "Doubleday misprints", `<span class="vary typo">glass-strewn</span>`,
+     "Book\u2019s misprint, corrected here"]);
+  return rows;
+}
+
+function highlightsControl(){
+  const rows = highlightRows().map(([key, name, sample, says]) =>
+    `<div class="hlrow"><span class="hlsample">${sample}</span>`
+    + `<span class="hlwhat"><b>${name}</b><span>${says}</span>`
+    + (key === "rare"
+        ? `<span class="notedial"><input class="notelevel" id="notelevel" type="range"`
+          + ` min="0" max="${NOTE_FAR}" step="1" value="${noteLevel}" aria-label="How rare a word is marked">`
+          + `<span class="notesay"></span></span>`
+        : "")
+    + `</span>`
+    + `<input type="checkbox" role="switch" class="hlswitch" data-hl="${key}"`
+      + ` aria-label="${name}"${(key === "rare" ? noteLevel > 0 : hl[key]) ? " checked" : ""}>`
+    + `</div>`).join("");
+  // not a mark but a habit: what a selection does. Only where the lines are known.
+  const copying = Object.keys(LINES).length
+    ? `<label class="hlrow hlplain"><span class="hlwhat"><b>Copy selections automatically</b>`
+      + `<span>With story, page and lines</span></span>`
+      + `<input type="checkbox" role="switch" class="hlswitch" data-hl="autocopy"`
+      + ` aria-label="Copy selections automatically"${hl.autocopy ? " checked" : ""}></label>` : "";
+  return `<button type="button" class="hlpick" aria-expanded="false" aria-controls="hlpop">`
+    + `Show/hide highlights</button>`
+    + `<div class="hlpop" id="hlpop" role="dialog" aria-label="Highlights" hidden>`
+    + `<p class="hlhead">What the marks mean</p>${rows}${copying}</div>`;
+}
+
+function closeHighlights(){
+  const open = [...document.querySelectorAll(".hlpop")].find(p => !p.hidden);
+  if (!open) return false;
+  open.hidden = true;
+  const link = document.querySelector(".hlpick");
+  if (link) link.setAttribute("aria-expanded", "false");
+  return true;
+}
+
+document.addEventListener("click", event => {
+  const link = event.target.closest(".hlpick");
+  if (link){
+    // Taken out to the page on first opening: the panel clips whatever overflows it, and
+    // the key is taller than the room the head leaves. One at a time, the last panel's.
+    let pop = link.hlpop || (link.hlpop = link.parentElement.querySelector(".hlpop"));
+    if (pop.parentElement !== document.body){
+      document.querySelectorAll("body > .hlpop").forEach(old => old.remove());
+      document.body.appendChild(pop);
+    }
+    const opening = pop.hidden;
+    pop.hidden = !opening;
+    const r = link.getBoundingClientRect();
+    pop.style.top = r.bottom + 6 + "px";
+    pop.style.right = Math.max(8, innerWidth - r.right) + "px";
+    pop.style.maxHeight = Math.max(160, innerHeight - r.bottom - 22) + "px";
+    link.setAttribute("aria-expanded", String(opening));
+    return;
+  }
+  // a click anywhere but the popover is the reader done with it
+  if (!event.target.closest(".hlpop")) closeHighlights();
+});
+
+document.addEventListener("change", event => {
+  const box = event.target.closest(".hlswitch");
+  if (!box) return;
+  // The rare words' switch is the dial's "none" stop, so there is one setting and not two:
+  // off remembers where the dial stood, on puts it back.
+  if (box.dataset.hl === "rare"){
+    if (box.checked) setNoteLevel(lastNoteLevel);
+    else { if (noteLevel) lastNoteLevel = noteLevel; setNoteLevel(0); }
+    return;
+  }
+  hl[box.dataset.hl] = box.checked;
+  saveHighlights();
+  if (box.dataset.hl === "autocopy"){
+    document.querySelectorAll(".ctbox").forEach(b => { b.checked = hl.autocopy; });
+    return;
+  }
+  // the Variants control at the top says Off only when no printing mark is on
+  variantsOn = hl.printings || hl.insertions || hl.typos;
+  try { localStorage.setItem("variants", variantsOn ? "yes" : "no"); } catch (e) { /* not kept */ }
+  if (typeof showVariants === "function") showVariants();
+  const panel = document.querySelector(".reading");
+  if (panel) reflow(panel, () => {});
+});
+
 // `root` because the panel calls this while it is still being built and not yet in the
 // document, which is why asking the document for the dial found nothing.
+let lastNoteLevel = 2;               // where the dial stood before the switch turned it off
+
 function showNoteLevel(said, root){
   (root || document).querySelectorAll(".notedial").forEach(dial => {
     const slider = dial.querySelector(".notelevel");
     const say = dial.querySelector(".notesay");
     slider.value = noteLevel;
+    if (noteLevel) lastNoteLevel = noteLevel;
+    const on = dial.closest(".hlrow") && dial.closest(".hlrow").querySelector(".hlswitch");
+    if (on) on.checked = noteLevel > 0;
     slider.disabled = fetching;
     slider.setAttribute("aria-valuetext", NOTE_STOPS[noteLevel]);
     if (say) say.textContent = said || (fetching ? "fetching…" : NOTE_STOPS[noteLevel]);
@@ -5981,17 +6366,75 @@ function showNote(button){
 // A variant borrows the note pane rather than opening one of its own: the pane already
 // knows how to sit beside a word, draw its leader line, close on a click away and move
 // with the loupe, and none of that is about definitions.
-function showVariant(button){
-  const panel = button.closest(".reading");
-  const pane = panel && panel.querySelector(".notepane");
-  if (!pane) return;
-  const key = "" + button.dataset.vary + button.dataset.side;
-  if (noted === key && !pane.hidden){ closeNote(); return; }
-  closeNote();
-  noted = key;
+// The words either side of a variant, as the leaf prints them: a few before, a few
+// after, cut at the paragraph's own ends.
+const CONTEXT = 5;
+function aroundVariant(button){
+  const para = button.closest("p") || button.parentElement;
+  const cut = (setup) => {
+    const range = document.createRange();
+    setup(range);
+    return range.toString().replace(/\s+/g, " ");
+  };
+  const before = cut(r => { r.setStart(para, 0); r.setEndBefore(button); });
+  const after = cut(r => { r.setStartAfter(button); r.setEnd(para, para.childNodes.length); });
+  const bw = before.trim().split(" ").filter(Boolean), aw = after.trim().split(" ").filter(Boolean);
+  const gapB = /\s$/.test(before) || !before ? " " : "", gapA = /^\s/.test(after) ? " " : "";
+  return {
+    before: (bw.length > CONTEXT ? "\u2026" : "") + bw.slice(-CONTEXT).join(" ") + gapB,
+    after: gapA + aw.slice(0, CONTEXT).join(" ") + (aw.length > CONTEXT ? "\u2026" : "")};
+}
+
+// The two printings of the place, one under the other, with what differs picked out:
+//   Doubleday  …shadows and promises to end in an honoured…
+//   The Strand …shadows and ended in an honoured…
+function variantLines(button){
+  const says = VARIANT_SAYS[button.dataset.side] || "The first printing";
+  const around = aroundVariant(button), ours = button.textContent;
+  const typo = button.dataset.kind === "typo", ins = button.dataset.ins;
+  // Where each printing stands, as [what it prints, class for the difference]. A misprint
+  // row is the other way about: the book printed `theirs` and the magazine `said`.
+  const doubleday = typo ? [button.dataset.vary, "differs"] : [ours, ins ? "" : "differs"];
+  const other = typo ? [button.dataset.said || ours, "differs"]
+    : ins ? [ours + " " + ins, "added"] : [button.dataset.vary, "differs"];
+  const line = (label, [mid, how]) => {
+    const row = document.createElement("span");
+    row.className = "ctxline";
+    const lab = document.createElement("i");
+    lab.textContent = label;
+    const text = document.createElement("span");
+    text.append(around.before);
+    if (ins && how === "added"){
+      text.append(ours + " ");
+      const g = document.createElement("b");
+      g.className = "added";
+      g.textContent = ins;
+      text.append(g);
+    } else if (mid && !how){
+      text.append(mid);
+    } else if (mid){
+      const m = document.createElement("b");
+      m.className = how;
+      m.textContent = mid;
+      text.append(m);
+    } else {
+      // The magazine printed the place without these words. Said, not left blank.
+      const m = document.createElement("em");
+      m.textContent = "(omitted)";
+      text.append(m);
+    }
+    text.append(around.after);
+    row.append(lab, text);
+    return row;
+  };
+  return [line("Doubleday", doubleday), line(says, other)];
+}
+
+// What a variant mark says, as words: the one place the pane and the hover popup both
+// read from, so they cannot drift apart.
+function variantSays(button){
   const says = VARIANT_SAYS[button.dataset.side] || "the first printing";
   const typo = button.dataset.kind === "typo";
-  pane.querySelector(".noteword").textContent = button.textContent;
   // An empty other reading is not a missing one. The magazine printed this passage
   // without these words, and saying so is the whole point of the mark.
   // The quoted reading is cut from the line and keeps whatever stood against it, so it
@@ -5999,30 +6442,36 @@ function showVariant(button){
   // ours after it, and "of it" does.
   const other = button.dataset.vary;
   const stopped = /[.!?’”]$/.test(other) ? "" : ".";
-  pane.querySelector(".notedef").textContent = typo
-    ? `The Doubleday prints “${other}” here, and this text corrects it.`
-      // what the first printing has is the evidence the correction rests on -- the
-      // Doubleday sets `breech-lock`, the Strand `breech-block` -- and a note without
-      // it asks the reader to take the emendation on trust
-      + (button.dataset.said
-          ? ` ${says} has “${button.dataset.said}”`
-            + (/[.!?’”]$/.test(button.dataset.said) ? "" : ".")
-          : "")
-    : other
-      ? `${says} prints “${other}”${stopped}`
-      : `${says} has not these words.`;
-  pane.querySelector(".notewhy").textContent = typo
-    ? "a misprint in the book itself"
-    : button.dataset.grade === "significant"
-      ? `${says} · a change of sense` : says;
-  // Moskowitz's own note on the place, where he wrote one -- thirty-odd of them, and
-  // some are the only record of the thing they say: that the misprint on folio 645
-  // "was apparently corrected sometime after April, 1974" dates the printing the
-  // Archive scanned. His words, so the note says whose they are.
+  return {
+    why: button.dataset.ins
+      ? `${says} · words the Doubleday does not have`
+      : typo
+      ? "a misprint in the book itself"
+      : button.dataset.grade === "significant"
+        ? `${says} · a change of sense` : says,
+    // Moskowitz's own note on the place, where he wrote one -- thirty-odd of them, and
+    // some are the only record of the thing they say: that the misprint on folio 645
+    // "was apparently corrected sometime after April, 1974" dates the printing the
+    // Archive scanned. His words, so the note says whose they are.
+    aside: button.dataset.aside ? `Les Moskowitz notes: ${button.dataset.aside}` : ""};
+}
+
+function showVariant(button){
+  const panel = button.closest(".reading");
+  const pane = panel && panel.querySelector(".notepane");
+  if (!pane) return;
+  const key = "" + button.dataset.vary + button.dataset.side;
+  if (noted === key && !pane.hidden){ closeNote(); return; }
+  closeNote();
+  noted = key;
+  hideVaryTip();
+  const say = variantSays(button);
+  pane.querySelector(".noteword").textContent = button.textContent;
+  pane.querySelector(".notedef").replaceChildren(...variantLines(button));
+  pane.querySelector(".notewhy").textContent = say.why;
   const aside = pane.querySelector(".notecanon");
-  aside.textContent = button.dataset.aside
-    ? `Les Moskowitz notes: ${button.dataset.aside}` : "";
-  aside.hidden = !button.dataset.aside;
+  aside.textContent = say.aside;
+  aside.hidden = !say.aside;
   const cats = pane.querySelector(".notecats");
   cats.textContent = "";
   cats.hidden = true;
@@ -6036,8 +6485,60 @@ function showVariant(button){
   requestAnimationFrame(() => drawNoteLink(panel));
 }
 
+// Hovering (or tabbing to) a variant shows what the other printing has, beside the word.
+// Touch has no hover, so there the tap-to-open pane is the whole story.
+let varyTip = null, varyTimer = 0;
+const canHover = window.matchMedia("(hover: hover)");
+
+function hideVaryTip(){
+  clearTimeout(varyTimer);
+  if (varyTip) varyTip.hidden = true;
+}
+
+function showVaryTip(button){
+  const say = variantSays(button);
+  if (!varyTip){
+    varyTip = document.createElement("div");
+    varyTip.className = "varytip";
+    varyTip.setAttribute("role", "tooltip");
+    document.body.appendChild(varyTip);
+  }
+  varyTip.replaceChildren(...variantLines(button));
+  const small = document.createElement("small");
+  small.textContent = say.why;
+  varyTip.append(small);
+  if (say.aside){
+    const em = document.createElement("em");
+    em.textContent = say.aside;
+    varyTip.append(em);
+  }
+  varyTip.hidden = false;
+  const r = button.getBoundingClientRect(), t = varyTip.getBoundingClientRect();
+  const left = Math.max(8, Math.min(r.left, innerWidth - t.width - 8));
+  const top = r.bottom + 8 + t.height > innerHeight ? r.top - t.height - 8 : r.bottom + 8;
+  varyTip.style.left = left + "px";
+  varyTip.style.top = Math.max(8, top) + "px";
+}
+
+document.addEventListener("mouseover", event => {
+  const vary = event.target.closest(".rbody [data-vary]");
+  if (!vary || !canHover.matches) return;
+  clearTimeout(varyTimer);
+  varyTimer = setTimeout(() => showVaryTip(vary), 150);
+});
+document.addEventListener("mouseout", event => {
+  if (event.target.closest(".rbody [data-vary]")) hideVaryTip();
+});
+document.addEventListener("focusin", event => {
+  const vary = event.target.closest(".rbody [data-vary]");
+  if (vary) showVaryTip(vary);
+});
+document.addEventListener("focusout", hideVaryTip);
+document.addEventListener("scroll", hideVaryTip, true);
+
 document.addEventListener("click", event => {
-  const vary = event.target.closest(".rbody .vary");
+  const rare0 = event.target.closest(".rbody .rare, .rbody mark[data-note]");
+  const vary = !rare0 && event.target.closest(".rbody [data-vary]");
   if (vary){ showVariant(vary); return; }
   const rare = event.target.closest(".rbody .rare, .rbody mark[data-note]");
   if (rare){ showNote(rare); return; }
@@ -6366,19 +6867,13 @@ function reading(hit){
     el.querySelector(".rhead").appendChild(lamp);
     showCandle();
   }
-  // How far down the rarity the underlines go, off included. A range rather than a set of
-  // buttons because the stops are ordered and the reader is picking how much, not which:
-  // the arrow keys, home and end all come with it, and there is no keydown handler here.
-  if (Object.keys(NOTES).length){
-    const dial = document.createElement("div");
-    dial.className = "notedial";
-    dial.innerHTML = `<label class="notelab" for="notelevel">Rare words</label>`
-      + `<input class="notelevel" id="notelevel" type="range" min="0" max="${NOTE_FAR}"`
-      + ` step="1" value="${noteLevel}">`
-      + `<span class="notesay"></span>`;
-    el.querySelector(".rhead").appendChild(dial);
-    showNoteLevel(null, el);
-  }
+  // The key to the marks and the switch for each, in a popover under one link. The rare
+  // words' dial lives inside it: how far down the rarity the underlines go, off included,
+  // is a range because the stops are ordered and the reader is picking how much, not
+  // which -- the arrow keys, home and end all come with it, and there is no keydown
+  // handler here.
+  el.querySelector(".rhead").insertAdjacentHTML("beforeend", highlightsControl());
+  showNoteLevel(null, el);
   const list = document.querySelector("#theming .themelist");
   if (list){
     const styler = document.createElement("details");
@@ -6896,8 +7391,14 @@ function drawResults(){
        + active.within.map(w => `<button class="respell" data-ask="${esc(w)}">${esc(w)}</button>`).join(" ")]
     : [];
   const also = alsoBegins(active);
+  // Nothing in the book, so what is offered is where another printing reads it. Said as
+  // what it is: a place Moskowitz recorded, from a list that is not a full collation.
+  const variant = active.variant
+    ? [`<span class="mended"><b>Variant match.</b> Not in ${EDITION}; these are places where`
+       + ` another printing reads it, as recorded by Lester Moskowitz. His list is not`
+       + ` a complete collation.</span>`] : [];
   document.getElementById("rmend").innerHTML = holding ? ""
-    : (recase || part.concat(also ? [also] : [], mended, lost, away)).join("<br>");
+    : (recase || variant.concat(part, also ? [also] : [], mended, lost, away)).join("<br>");
   // the phrase as typed, with the words the closest passage answered marked in it
   const closestRow = active.phrase && active.ranked.find(r => r.near !== undefined);
   const keyed = active.phrase
@@ -7169,6 +7670,304 @@ document.addEventListener("click", async event => {
     button.innerHTML = was;
     button.classList.remove("done");
   }, 2200);
+});
+
+// ---- a selection, cited ------------------------------------------------------
+// What a reader highlights in the passage goes to the clipboard with where it is from:
+// the story, the Doubleday page or pages, and the printed lines on them. Only where the
+// press's lines are known -- the Doubleday's -- so Austen's reader leaves selections alone.
+
+const PLUG = "Check out http://Killer-Serials.com for the greatest Canon Search in the world.";
+
+const blockOf = node => {
+  const el = node && (node.nodeType === 1 ? node : node.parentElement);
+  return el && el.closest ? el.closest("[data-f][data-b]") : null;
+};
+
+// How far into a block's own text a point in it falls: counted from the text itself, so
+// the folio number set in the margin, and anything else the page draws, are not in it.
+function offsetIn(block, node, at){
+  const range = document.createRange();
+  range.setStart(block, 0);
+  range.setEnd(node, at);
+  const holder = document.createElement("div");
+  holder.appendChild(range.cloneContents());
+  holder.querySelectorAll(".pfolio, [aria-hidden='true']").forEach(el => el.remove());
+  return holder.textContent.length;
+}
+
+// the page-local number of the printed line a character of a block is on
+function lineAt(f, b, at){
+  const row = (LINES[f] || {})[b];
+  if (!row) return null;
+  let line = row[0], start = 0;
+  for (let i = 1; i < row.length; i++){
+    start += row[i];
+    if (at >= start) line++; else break;
+  }
+  return line;
+}
+
+const plural = (n, one, many) => n === 1 ? one : many;
+
+// "p. 309, lines 12–15", or across a page, "pp. 309–310, from line 38 of p. 309 to line 3 of p. 310"
+function whereCited(f1, l1, f2, l2){
+  const lines = (a, z) => a === z ? `line ${a}` : `lines ${a}–${z}`;
+  if (f1 === f2){
+    const at = l1 && l2 ? `, ${lines(Math.min(l1, l2), Math.max(l1, l2))}` : "";
+    return `p. ${f1}${at}`;
+  }
+  const at = l1 && l2 ? `, from line ${l1} of p. ${f1} to line ${l2} of p. ${f2}` : "";
+  return `pp. ${f1}–${f2}${at}`;
+}
+
+// Pasted into a document or a mail the passage should look like a quotation and the
+// citation like a credit: a serif face for the book's words, a sans one for ours.
+const SERIF = "Georgia,'Times New Roman',serif";
+const SANS = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+const escHTML = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// The selected passage as HTML: its words, and the italics the press set -- and nothing the
+// page drew on top of them, the marks, the notes, the margin's folio.
+function passageHTML(range){
+  const box = document.createElement("div");
+  box.appendChild(range.cloneContents());
+  box.querySelectorAll(".pfolio, [aria-hidden='true']").forEach(el => el.remove());
+  const out = [];
+  (function walk(node){
+    for (const c of node.childNodes){
+      if (c.nodeType === 3) out.push(escHTML(stepIn(c.data)));
+      else if (c.nodeType === 1){
+        if (c.tagName === "I"){ out.push("<i>"); walk(c); out.push("</i>"); }
+        else {
+          walk(c);
+          if (/^(P|DIV|H\d|LI)$/.test(c.tagName)) out.push(" ");
+        }
+      }
+    }
+  })(box);
+  return out.join("").replace(/\s+/g, " ").trim();
+}
+
+function citedHTML(passage, title, where){
+  const credit = `font-family:${SANS};font-size:10pt;color:#555555;margin:0`;
+  return `<div><p style="font-family:${SERIF};font-size:12pt;line-height:1.5;margin:0 0 8px">`
+    + `“${passage}”</p>`
+    + `<p style="${credit};margin-bottom:8px">— ${escHTML(title)}, Doubleday ${escHTML(where)}</p>`
+    + `<p style="${credit}">Check out <a href="http://Killer-Serials.com" style="font-family:${SANS}">`
+    + `http://Killer-Serials.com</a> for the greatest Canon Search in the world.</p></div>`;
+}
+
+// The highlighted passage as a citation, or null where it is not a passage of the book:
+// nothing selected, a single word, or a selection that strays outside the story's text.
+function selectionCited(){
+  if (!Object.keys(LINES).length || !picked) return null;
+  const sel = document.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  const body = document.querySelector(".rbody");
+  if (!body || !body.contains(range.commonAncestorContainer)) return null;
+  const blocks = [...body.querySelectorAll("[data-f][data-b]")];
+  let a = blockOf(range.startContainer), z = blockOf(range.endContainer);
+  if (!a || !z) return null;
+  let from = offsetIn(a, range.startContainer, range.startOffset);
+  let to = offsetIn(z, range.endContainer, range.endOffset);
+  // a triple-click ends at the start of the next paragraph: that is the end of this one
+  if (to === 0 && z !== a){
+    z = blocks[blocks.indexOf(z) - 1] || a;
+    to = offsetIn(z, z, z.childNodes.length);
+  }
+  const text = sel.toString().replace(/\s+/g, " ").trim();
+  if (text.split(" ").length < 2) return null;
+  const f1 = +a.dataset.f, f2 = +z.dataset.f;
+  const where = whereCited(f1, lineAt(f1, a.dataset.b, from), f2,
+                           lineAt(f2, z.dataset.b, Math.max(0, to - 1)));
+  const story = STORY[picked];
+  const title = story ? `${fullTitle(story.title)} (${picked})` : picked;
+  return {
+    text: `${asQuote(text)}\n— ${title}, Doubleday ${where}\n\n${PLUG}`,
+    html: citedHTML(passageHTML(range), title, where),
+    said: text, where: `${story ? shortTitle(story.title) : picked} · ${where}`};
+}
+
+// the toast: that it was copied, the last of what was copied, and where from
+let copyToast = null, copyTimer = 0, lastCopied = "";
+
+// `how`: "copied", "press" (it was not copied, the reader's own copy will be) or "off"
+// (the clipboard was refused outright, so the automatic copy has been switched off)
+const COPY_SAYS = {
+  copied: "Passage copied to clipboard",
+  press: "Press Ctrl/Cmd-C to copy it with its citation",
+  off: "Clipboard refused \u2014 automatic copying is off. Press Ctrl/Cmd-C to copy"};
+
+function showCopied(cited, how){
+  if (!copyToast){
+    copyToast = document.createElement("div");
+    copyToast.className = "copytoast";
+    copyToast.setAttribute("role", "status");
+    copyToast.innerHTML = `<b class="ctsay"></b><span class="ctpreview"></span>`
+      + `<span class="ctwhere"></span>`
+      + `<label class="ctauto"><input type="checkbox" class="ctbox"> Copy selections automatically</label>`;
+    document.body.appendChild(copyToast);
+    // while the reader is deciding about the switch the toast stays
+    copyToast.addEventListener("mouseenter", () => clearTimeout(copyTimer));
+    copyToast.addEventListener("mouseleave", () => hideSoon(1800));
+    copyToast.addEventListener("focusin", () => clearTimeout(copyTimer));
+    // a click anywhere but the switch asks for the whole of it, and the toast has done its job
+    copyToast.addEventListener("click", event => {
+      if (event.target.closest(".ctauto")) return;
+      clearTimeout(copyTimer);
+      copyToast.classList.remove("on");
+      openCopyView(copyToast.cited, copyToast.querySelector(".ctsay").textContent);
+    });
+    copyToast.addEventListener("change", event => {
+      if (!event.target.classList.contains("ctbox")) return;
+      hl.autocopy = event.target.checked;
+      saveHighlights();
+      document.querySelectorAll('.hlswitch[data-hl="autocopy"]').forEach(b => { b.checked = hl.autocopy; });
+      hideSoon(1800);
+    });
+  }
+  copyToast.querySelector(".ctsay").textContent = COPY_SAYS[how];
+  // the last couple of lines of it, cut at a word
+  const tail = cited.said.length > 150 ? "…" + cited.said.slice(-150).replace(/^\S*\s/, "") : cited.said;
+  copyToast.querySelector(".ctpreview").textContent = tail;
+  copyToast.querySelector(".ctwhere").textContent = cited.where;
+  copyToast.querySelector(".ctbox").checked = hl.autocopy;
+  copyToast.cited = cited;
+  // laid out once below the window before it is shown, or a first toast arrives without
+  // sliding: it was never anywhere else to slide from
+  void copyToast.offsetWidth;
+  copyToast.classList.add("on");
+  hideSoon(4200);
+}
+
+// Everything that went to the clipboard, in a window of its own: the toast shows the end
+// of it, and a reader who wants to see it all -- or to copy it by hand where the clipboard
+// was refused -- opens this.
+function openCopyView(cited, said){
+  let view = document.querySelector(".copyview");
+  if (!view){
+    view = document.createElement("div");
+    view.className = "copyview";
+    view.setAttribute("role", "dialog");
+    view.setAttribute("aria-label", "What was copied");
+    view.innerHTML = `<div class="cvbox"><button type="button" class="cvx" aria-label="Close">\u00D7</button>`
+      + `<p class="cvhead"></p><div class="cvtext" tabindex="0"></div></div>`;
+    document.body.appendChild(view);
+    // the window, or a click outside it, closes it
+    view.addEventListener("click", event => {
+      if (event.target === view || event.target.closest(".cvx")) closeCopyView();
+    });
+  }
+  // the toast's own words, so the two say the same thing about the same copy
+  view.querySelector(".cvhead").textContent = said;
+  // the formatted version itself, on a sheet of paper: its colours are chosen for the page
+  // it will be pasted onto, and this is how it will look there
+  const sheet = view.querySelector(".cvtext");
+  sheet.innerHTML = cited.html;
+  sheet.querySelectorAll("a").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
+  view.hidden = false;
+  view.querySelector(".cvx").focus();
+}
+
+function closeCopyView(){
+  const view = document.querySelector(".copyview");
+  if (!view || view.hidden) return false;
+  view.hidden = true;
+  return true;
+}
+
+function hideSoon(ms){
+  clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => { if (copyToast) copyToast.classList.remove("on"); }, ms);
+}
+
+// Where the clipboard API is refused -- a sandboxed frame, a page that is not secure --
+// the older copy command often still works during the gesture. It copies what is selected,
+// so the citation is laid out off screen and selected, which carries its formatting with
+// it; the reader's own selection is put back afterwards.
+function legacyCopy(cited){
+  const holder = document.createElement("div");
+  holder.innerHTML = cited.html;
+  holder.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+  document.body.appendChild(holder);
+  const sel = document.getSelection();
+  const kept = sel.rangeCount ? sel.getRangeAt(0) : null;
+  const all = document.createRange();
+  all.selectNodeContents(holder);
+  sel.removeAllRanges();
+  sel.addRange(all);
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) { /* refused */ }
+  holder.remove();
+  sel.removeAllRanges();
+  if (kept) sel.addRange(kept);
+  return ok;
+}
+
+// Plain text and HTML together where the browser takes both; plain text alone where it
+// takes only that.
+async function writeClipboard(cited){
+  if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/plain": new Blob([cited.text], {type: "text/plain"}),
+        "text/html": new Blob([cited.html], {type: "text/html"})})]);
+      return true;
+    } catch (e) { /* fall through to the plain write */ }
+  }
+  try { await navigator.clipboard.writeText(cited.text); return true; }
+  catch (e) { return legacyCopy(cited); }
+}
+
+// A write cannot be asked for -- browsers prompt for reading the clipboard, not for
+// writing it -- so a refusal is final for this page: the automatic copy is switched off
+// rather than left to fail at every selection, and the reader's own copy still carries
+// the citation. A page that is not in focus is not a refusal, only a poor moment.
+function copyRefused(cited){
+  if (!document.hasFocus()) return showCopied(cited, "press");
+  hl.autocopy = false;
+  saveHighlights();
+  document.querySelectorAll('.hlswitch[data-hl="autocopy"]').forEach(b => { b.checked = false; });
+  showCopied(cited, "off");
+}
+
+// the same selection twice -- a click inside it, a nudge of the mouse -- copies once
+async function copySelection(){
+  const cited = selectionCited();
+  if (!cited || cited.text === lastCopied) return;
+  lastCopied = cited.text;
+  if (await writeClipboard(cited)) return showCopied(cited, "copied");
+  copyRefused(cited);
+}
+
+// the reader's own copy, with or without the switch, carries the citation too
+document.addEventListener("copy", event => {
+  const cited = selectionCited();
+  if (!cited) return;
+  event.clipboardData.setData("text/plain", cited.text);
+  event.clipboardData.setData("text/html", cited.html);
+  event.preventDefault();
+  lastCopied = cited.text;
+  showCopied(cited, "copied");
+});
+
+// Once the pointer is up the selection is made, and a moment later its gesture is still
+// fresh enough for the clipboard. A keyboard selection ends when the arrows stop.
+document.addEventListener("mouseup", event => {
+  if (hl.autocopy && event.target.closest && event.target.closest(".rbody"))
+    setTimeout(copySelection, 0);
+});
+let keySelect = 0;
+document.addEventListener("keyup", event => {
+  if (!hl.autocopy || !event.shiftKey || !/^Arrow|^Home$|^End$/.test(event.key)) return;
+  clearTimeout(keySelect);
+  keySelect = setTimeout(copySelection, 450);
+});
+document.addEventListener("selectionchange", () => {
+  const sel = document.getSelection();
+  if (!sel || sel.isCollapsed) lastCopied = "";
 });
 function drawChart(){
   if (simplexOn) return;                      // simple mode draws none of this
@@ -7671,6 +8470,9 @@ addEventListener("keydown", e => {
     backToSearch(was);
     return;
   }
+  // the key to the highlights and the copied passage are the topmost things on the
+  // passage, so they go first
+  if (closeCopyView() || closeHighlights()){ e.preventDefault(); return; }
   // A find in the passage is peeled before the passage is: the first Escape clears it and
   // puts the passage back as the search left it, and the next one closes. That holds
   // wherever the focus has gone -- stepping through the finds or clicking into the text
@@ -7750,7 +8552,7 @@ document.addEventListener("click", event => {
   // the time this runs and closest() finds nothing -- which read as a click on the
   // page behind, and shut the passage the reader had just asked to see more of.
   if (!event.target.isConnected) return;
-  if (event.target.closest(".reading, .card, .srow, .simplexline, .seg, .controls, .termkey, .termoff, .theming")) return;
+  if (event.target.closest(".reading, .hlpop, .copytoast, .copyview, .card, .srow, .simplexline, .seg, .controls, .termkey, .termoff, .theming")) return;
   pick(null);
 });
 
@@ -7762,6 +8564,7 @@ const TOUR_KEY = "canonmap.tour.dismissed";
 // box is where to begin. The spotlight says it once and then gets out of the way.
 const SPOT_KEY = "canonmap.spotlight.dismissed";
 let spotting = null;          // the overlay, while it is up
+let spotPoll = 0;             // what keeps its hole on the search box while the box settles
 
 // Unlike the recommendations, which are set aside for a session, this is a first-run
 // thing: a reader who has been shown it has been shown it.
@@ -7839,6 +8642,12 @@ function startSpotlight(){
   document.body.appendChild(spot);
   spotting = spot;
   placeSpot();
+  // The hole was measured once, and the box can still be on its way -- the list opening,
+  // the fonts arriving, a narrow window re-wrapping the row -- which left the ring a
+  // few dozen pixels from what it was lighting. So it follows the box until it is done.
+  clearInterval(spotPoll);
+  spotPoll = setInterval(placeSpot, 150);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeSpot);
   requestAnimationFrame(() => spot.classList.add("lit"));
   // ticking the box is what makes it permanent, whichever way it is closed
   const remember = () => {
@@ -7862,10 +8671,11 @@ function startSpotlight(){
 
 // `onward` says whether the reader clicked through, which is what asks for the
 // recommendations; the x and Escape close the coaching and leave the page alone.
-function endSpotlight(onward){
+function endSpotlight(onward, typing){
   if (!spotting) return;
   const tick = spotting.querySelector("#spothide");
   if (tick && tick.checked) { try { localStorage.setItem(SPOT_KEY, "yes"); } catch (e) {} }
+  clearInterval(spotPoll);
   removeEventListener("resize", placeSpot);
   const scroller = document.querySelector(".scroller");
   if (scroller) scroller.removeEventListener("scroll", placeSpot);
@@ -7873,6 +8683,9 @@ function endSpotlight(onward){
   spotting.remove();
   spotting = null;
   showEgs(false);
+  // Typing is what ended it: the box is already theirs, and putting the cursor back
+  // would select what they have just written and the next letter would replace it.
+  if (typing) return;
   // coaching done: the reader is back on the page, so the box is theirs again
   backToSearch(was);
   if (onward) startTour();
@@ -8971,6 +9784,7 @@ async function search(query){
   const found = await runSearch(query);
   if (mine !== outstanding) return;  // a newer question came while this one was running
   active = found;
+  active.asked = query;               // what the box said, so Enter can tell the answer is current
   form.querySelector("button").disabled = false;
   // A search over part of the book answers in the same voice as a search over all of
   // it, and says "nothing" about leaves it never read. So a short load is said out
@@ -9111,6 +9925,11 @@ document.addEventListener("click", event => {
   const asked = event.target.closest(".varypick");
   if (!asked) return;
   variantsOn = asked.dataset.variants === "yes";
+  hl.printings = hl.insertions = hl.typos = variantsOn;
+  saveHighlights();
+  document.querySelectorAll(".hlswitch").forEach(b => {
+    if (b.dataset.hl in hl) b.checked = hl[b.dataset.hl];
+  });
   try { localStorage.setItem("variants", variantsOn ? "yes" : "no"); } catch (e) { /* not kept */ }
   showVariants();
   document.querySelectorAll(".theming[open]").forEach(d => { d.open = false; });
@@ -9130,7 +9949,21 @@ showMending();
 if (!anyVariants()) document.querySelectorAll("#collating").forEach(d => d.remove());
 showVariants();
 
-form.addEventListener("submit", e => { e.preventDefault(); endTour(); askNow(box.value); });
+// Enter on a search that has already come back for what is in the box does not ask again:
+// it takes the reader to the first result, which is what the next move almost always is.
+// Enter on anything else -- typed since, or no results yet -- asks, as it always did.
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  endTour();
+  const first = active && active.asked === box.value
+    ? document.querySelector(".cards button.card, .srows button.srow") : null;
+  if (first){
+    endSpotlight(false, true);
+    if (picked !== first.dataset.code) pick(first.dataset.code);
+    return;
+  }
+  askNow(box.value);
+});
 
 // ---- the examples, which belong to the search field --------------------------
 const egs = document.getElementById("egs");
@@ -9191,7 +10024,13 @@ opens.addEventListener("click", () => { showEgs(egs.hidden); if (!egs.hidden) bo
 // Three characters, because queryTerms drops anything shorter and a one-letter search
 // is a sweep of the whole corpus for nothing.
 box.addEventListener("input", () => {
-  if (box.value.trim()) showEgs(false);
+  if (box.value.trim()){
+    showEgs(false);
+    // Typing is the reader's own question: the coaching and the recommendations about
+    // the last answer get out of the way now, not when the search comes back.
+    endSpotlight(false, true);
+    clearTour();
+  }
   if (box.value.trim().length >= 3) stage(box.value);
 });
 box.addEventListener("focus", () => { if (!box.value.trim()) showEgs(true); });
@@ -9225,6 +10064,9 @@ const OPENING = HANDHELD ? "" : EXAMPLES.opening || EXAMPLES.placeholder || "";
 box.value = OPENING;
 drawResults(); drawChart();
 search(OPENING);
+// The page opens ready to be typed on: what is in the box is selected, so the first
+// letter replaces it. Not on a phone, where focus raises the keyboard over the page.
+if (!HANDHELD){ box.focus({preventScroll: true}); box.select(); }
 
 </script>
 </body>
