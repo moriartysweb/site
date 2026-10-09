@@ -1856,6 +1856,7 @@ header:has(.simplexline) .pickers{margin-top:26px}
 
 @media (pointer: coarse){
   .articleopen,.avnew{min-height:44px}
+  .hllink,.hlfeedback{min-height:44px;display:flex;align-items:center}
   .avx{width:48px;height:48px}
 }
 
@@ -6111,7 +6112,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"49a0789"}`,
+  const lines = [`App: ${document.title}, build ${"988dc64"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -8342,12 +8343,12 @@ const squash = t => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 // The passage as plain lower-case words, each letter remembered with the text node it
 // came from, starting at the first leaf. Notation in the margin is not the book's words.
-function flowOf(body, from){
+function flowOf(body, from, only){
   const text = [], map = [];
   let space = true;
   const skip = {acceptNode: n => n.parentElement.closest(".mnote,.pfolio,.turn,.hlnum")
     ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT};
-  for (const el of body.querySelectorAll("[data-f][data-b]")){
+  for (const el of only ? [only] : body.querySelectorAll("[data-f][data-b]")){
     if (+el.dataset.f < from || (el.parentElement && el.parentElement.closest("[data-f][data-b]"))) continue;
     const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, skip);
     for (let n = walk.nextNode(); n; n = walk.nextNode())
@@ -8374,7 +8375,7 @@ function spotHere(){
   } else {
     const mid = body.getBoundingClientRect().top + body.clientHeight / 2;
     a = z = [...body.querySelectorAll("[data-f][data-b]")].find(p => p.getBoundingClientRect().bottom >= mid);
-    text = a ? a.textContent.replace(/\d+\s*(?=\S)/, "") : "";
+    text = a ? flowOf(body, 0, a).text : "";
   }
   if (!a || !z) return null;
   const w = squash(text).split(" ").filter(Boolean);
@@ -8409,14 +8410,15 @@ function findSpot(body, link){
   return range;
 }
 
-// lit, and brought to a third of the way down; false until the passage has it
+// lit, and brought to a third of the way down; false until the passage has it. Not
+// smoothly: a whole novel is a long way down, and a glide there is cut short by the settling
 function showLinked(){
   const body = document.querySelector(".rbody");
   const range = linked && body && findSpot(body, linked);
   if (!range) return false;
   if (HIGHLIGHTS) CSS.highlights.set("linked", new Highlight(range));
   const y = range.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
-  body.scrollTo({top: Math.max(0, y - body.clientHeight / 3), behavior: "smooth"});
+  body.scrollTo({top: Math.max(0, y - body.clientHeight / 3), behavior: "instant"});
   return true;
 }
 
@@ -8435,9 +8437,10 @@ async function openLinked(){
   if (!active || !active.ranked.some(r => r.code === code)) return true;
   linked = {code, f1: +f1, f2: +f2, start: decodeURIComponent(start), end: decodeURIComponent(end)};
   pick(code);
-  // the passage lays out over the next frames and settles on its hit: go to the spot after,
-  // and once more in case a slow device was not done
-  setTimeout(() => { if (!showLinked()) setTimeout(showLinked, 1200); }, 900);
+  // the passage lays out and settles on its hit over the next moments: go to the spot after,
+  // and again once it has stopped moving (a whole novel is a long way down)
+  setTimeout(showLinked, 900);
+  setTimeout(showLinked, 2200);
   return true;
 }
 addEventListener("hashchange", openLinked);
