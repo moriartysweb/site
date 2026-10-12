@@ -6,10 +6,20 @@
 const SIX_MONTHS = 180 * 864e5;
 
 // ---- decisions, kept pure so web/checks/account.js can test them --------------
-function snapshot(storage, keys) {
+// What is set to something other than its default. `same` says, key by key, when a value is only the
+// default written out (return null) -- a setting never touched and one saved as its default are the same.
+function tidy(raw, same) {
   const out = {};
-  for (const k of keys) { const v = storage.getItem(k); if (v !== null) out[k] = v; }
+  for (const [k, v] of Object.entries(raw)) {
+    const t = same && same[k] ? same[k](v, raw) : v;
+    if (t !== null && t !== undefined) out[k] = t;
+  }
   return out;
+}
+function snapshot(storage, keys, same) {
+  const raw = {};
+  for (const k of keys) { const v = storage.getItem(k); if (v !== null) raw[k] = v; }
+  return tidy(raw, same);
 }
 function differs(a, b) {
   return [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(k => a[k] !== b[k]).sort();
@@ -62,7 +72,7 @@ function tagCounts(rows) {
 }
 
 if (typeof window === "undefined") {
-  module.exports = {cleanText, safeUrl, tagCounts, withoutCode, snapshot, differs, isPrefs, plan, apply, expired, shouldPush, SIX_MONTHS};
+  module.exports = {cleanText, safeUrl, tagCounts, withoutCode, tidy, snapshot, differs, isPrefs, plan, apply, expired, shouldPush, SIX_MONTHS};
   return;
 }
 const cfg = window.accountApp;
@@ -70,12 +80,10 @@ if (!cfg) return;
 const URL_ = "https://lrmaaozvhmgqbcdvzndq.supabase.co", KEY = "sb_publishable_4_tFYOO2aWapS0mJ6QCmHg_QVZMn9Ft";
 const SUPABASE = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js";
 const SIGNED_IN_AT = "account.signedInAt", RETURN = "account.returnHash";
-// Set once this device has settled which preferences to keep; until then a signed-in landing is held
-// out of sight (see the head script site.py writes) so a reload to apply them is never seen.
-const SETTLED = "account.settled", RELOADED = "account.reloadedAt";
-const keys = cfg.keys, group = cfg.group || cfg.app;
+const keys = cfg.keys, group = cfg.group || cfg.app, same = cfg.same || {};
+const NO_QUOTE = "account.noquote";
 let db = null, me = null, asking = false, recovering = false, mode = "in", note = "";
-let lastPushed = {}, timer = 0, saved = null;
+let lastPushed = {}, timer = 0, saved = null, held = false, loading = false;
 
 const EYE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYE_OFF = EYE.replace("</svg>", '<path d="M3 3l18 18"/></svg>');
@@ -86,15 +94,6 @@ const kept = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* not kept */ } },
   del(k) { try { localStorage.removeItem(k); } catch (e) { /* not kept */ } },
 };
-// The head script keeps the page out of sight (and types out a quote) until this says it may come back.
-const ungate = () => { if (window.accountReveal) window.accountReveal(); else document.documentElement.classList.remove("account-wait"); };
-// A plain cover for the moment before a reload, so the page is not seen to vanish.
-function veil(text) {
-  const v = document.createElement("div");
-  v.className = "acctveil";
-  v.textContent = text;
-  document.body.appendChild(v);
-}
 const load = src => new Promise((ok, no) => {
   const s = document.createElement("script");
   s.src = src; s.onload = ok; s.onerror = no;
@@ -118,7 +117,16 @@ style.textContent = `
 .acctd .say{min-height:1.3em;margin:8px 0 0;color:var(--ink-soft,#a33)}
 .acctd ul{margin:6px 0;padding:0;list-style:none;max-height:40vh;overflow:auto}
 .acctd li{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:4px 0}
-.acctveil{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:var(--ground,#fff);color:var(--ink-soft,#555);font:15px system-ui,sans-serif}
+.acctd .aw-fig{margin:6px 0 0}
+.acctd .aw-q{margin:0;font:italic 400 20px/1.45 Georgia,"Times New Roman",serif;min-height:4.4em}
+.acctd .aw-q::before{content:"\\201C"}.acctd .aw-q.aw-done::after{content:"\\201D"}
+.acctd .aw-q:not(.aw-done)::after{content:"\\258D";opacity:.5}
+.acctd .aw-cite{margin-top:8px;font-size:13px}
+.acctd .aw-cite a{color:inherit;text-underline-offset:3px}
+.acctd .aw-foot{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-top:14px;font-size:13px}
+.acctd .aw-foot label{display:flex;gap:7px;align-items:center;cursor:pointer}
+.acctd .aw-foot input[type=checkbox]{width:auto;flex:none;padding:0;margin:0}
+.acctd .aw-foot label{margin:0}
 .acctd .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:42px;padding:0 12px;border:1px solid #dadce0;border-radius:4px;background:#fff;color:#3c4043;font:500 14px/1 Roboto,"Helvetica Neue",Arial,sans-serif;cursor:pointer}
 .acctd .gbtn:hover{background:#f8f9fa;border-color:#d2e3fc}
 .acctd .gbtn:focus-visible{outline:2px solid #4285F4;outline-offset:2px}
@@ -142,7 +150,7 @@ const dlg = document.createElement("dialog");
 dlg.className = "acctd";
 document.body.appendChild(dlg);
 // Esc must not leave a pending "which set do you keep" question unanswered.
-dlg.addEventListener("cancel", e => { if (asking) e.preventDefault(); });
+dlg.addEventListener("cancel", e => { if (asking || loading) e.preventDefault(); });
 
 function paintBar() {
   bar.innerHTML = me
@@ -236,9 +244,12 @@ dlg.addEventListener("click", async e => {
     el.innerHTML = on ? EYE_OFF : EYE;
   }
   else if (act === "out") { await db.auth.signOut(); dlg.close(); }
-  else if (act === "use-saved") { apply(localStorage, keys, saved); location.reload(); }
+  else if (act === "load-now") startLoading();
+  else if (act === "load-later") { dlg.close(); }          // sync stays paused this visit, so nothing is overwritten
+  else if (act === "skip") reloadWithSaved();
+  else if (act === "noquote") { if (el.checked) kept.set(NO_QUOTE, "1"); else kept.del(NO_QUOTE); }
   else if (act === "keep-mine") {
-    await pushPrefs(snapshot(localStorage, keys));
+    await pushPrefs(here());
     asking = false; dlg.close(); startPolling();
   }
   else if (act === "tag" || act === "tag-all") { tagFilter = act === "tag" ? el.dataset.tag : null; paintBookmarks(); }
@@ -282,53 +293,82 @@ async function pushPrefs(snap) {
   if (!error) lastPushed = snap;         // on failure the next tick tries again
 }
 
+// What this device is set to, and what the account holds, with a default written out counted as no setting.
+const here = () => snapshot(localStorage, keys, same);
+const theirs = () => isPrefs(saved) ? tidy(saved, same) : saved;
+
 async function onSignedIn() {
   const {data, error} = await db.from("app_prefs").select("prefs").eq("app", group).maybeSingle();
-  if (error) { ungate(); return; }       // unreachable is not "nothing saved": never overwrite on a failed read
+  if (error) return;                     // unreachable is not "nothing saved": never overwrite on a failed read
   saved = data ? data.prefs : null;
-  const device = snapshot(localStorage, keys), what = plan(device, saved);
-  if (what === "load") {
-    // Applied from outside, the reader reads them at startup, so the page starts over once. Not twice in a row.
-    let again = 0;
-    try { again = +sessionStorage.getItem(RELOADED) || 0; } catch (e) { /* not kept */ }
-    if (Date.now() - again > 20000) {
-      apply(localStorage, keys, saved);
-      // storage that will not hold them would reload forever
-      if (!differs(snapshot(localStorage, keys), saved).length) {
-        try { sessionStorage.setItem(RELOADED, String(Date.now())); } catch (e) { /* not kept */ }
-        kept.set(SETTLED, me.id);
-        if (window.accountReveal) window.accountReveal(true);      // reloads once the quote has finished
-        else { veil("Loading your saved settings\u2026"); location.reload(); }
-        return;
-      }
-    }
-  }
-  if (what === "ask") { asking = true; ungate(); return askWhich(device); }
+  const device = here(), what = plan(device, theirs());
+  // Nothing is shown unless the two really differ; and the page is never reloaded without being asked.
+  if (what === "load") { held = true; return offerLoad(); }
+  if (what === "ask") { asking = true; return askWhich(device); }
   if (what === "push") await pushPrefs(device);
-  else if (isPrefs(saved)) lastPushed = saved;
-  kept.set(SETTLED, me.id);
-  ungate();
+  else if (isPrefs(saved)) lastPushed = theirs();
   startPolling();
 }
-function onSignedOut() { clearInterval(timer); lastPushed = {}; saved = null; asking = false; kept.del(SETTLED); }
+function onSignedOut() { clearInterval(timer); lastPushed = {}; saved = null; asking = false; held = false; }
 
 // A tick costs nothing when nothing changed, and no call site in the app has to know about sync.
 function startPolling() {
   clearInterval(timer);
   timer = setInterval(() => {
-    const snap = snapshot(localStorage, keys);
-    if (me && shouldPush(snap, lastPushed, asking)) pushPrefs(snap);
+    const snap = here();
+    if (me && shouldPush(snap, lastPushed, asking || held)) pushPrefs(snap);
   }, 5000);
+}
+
+// The account has settings this device is not using. Asked, not assumed: applying them reloads the page.
+function offerLoad() {
+  if (recovering) return;
+  dlg.innerHTML = `<h2>Your saved settings</h2>
+    <p>Your account has display settings saved that this device is not using yet. Load them now? The page reloads to apply them.</p>
+    <div class="row"><button type="button" data-a="load-now">Load my settings</button>
+    <button type="button" data-a="load-later">Not now</button></div>`;
+  if (!dlg.open) dlg.showModal();
 }
 
 function askWhich(device) {
   if (recovering) return;                // choosing a password comes first; the question comes at the next visit
-  const names = differs(device, saved).map(k => esc((cfg.labels && cfg.labels[k]) || k));
+  const names = differs(device, theirs()).map(k => esc((cfg.labels && cfg.labels[k]) || k));
   dlg.innerHTML = `<h2>Your preferences differ</h2>
     <p>This device is set differently from your saved preferences. They differ in: ${names.join(", ")}.</p>
-    <div class="row"><button type="button" data-a="use-saved">Use my saved preferences</button>
+    <div class="row"><button type="button" data-a="load-now">Use my saved preferences</button>
     <button type="button" data-a="keep-mine">Keep these and save them to my account</button></div>`;
   if (!dlg.open) dlg.showModal();
+}
+
+// Applying them: the reader reads its settings at startup, so the page starts over. A window in front, a
+// quote typed out to read meanwhile, and a few seconds so it is not a flash; Dismiss goes straight on.
+let reloadTimer = 0;
+function reloadWithSaved() {
+  clearTimeout(reloadTimer);
+  apply(localStorage, keys, saved);
+  // storage that will not hold them would reload forever
+  if (differs(here(), theirs()).length) { loading = false; return say("This browser would not keep them."); }
+  location.reload();
+}
+function startLoading() {
+  loading = true; asking = false;
+  const quotes = root.accountQuotes || [];
+  if (kept.get(NO_QUOTE) || !quotes.length) { dlg.innerHTML = `<h2>Loading your saved settings\u2026</h2>`; reloadTimer = setTimeout(reloadWithSaved, 600); return; }
+  const [text, cite, href] = quotes[Math.floor(Math.random() * quotes.length)];
+  dlg.innerHTML = `<h2>Loading your saved settings\u2026</h2>
+    <figure class="aw-fig"><blockquote class="aw-q"><span class="aw-t"></span></blockquote>
+    <figcaption class="aw-cite" hidden><a class="aw-link" href="${esc(href)}">${esc(cite)}</a></figcaption></figure>
+    <div class="aw-foot"><label><input type="checkbox" data-a="noquote"> Don&rsquo;t show this again</label>
+    <button type="button" data-a="skip">Dismiss</button></div>`;
+  const t = dlg.querySelector(".aw-t"), q = dlg.querySelector(".aw-q");
+  let i = 0;
+  const step = () => {
+    if (!loading) return;
+    t.textContent = text.slice(0, ++i);
+    if (i < text.length) reloadTimer = setTimeout(step, 14 + Math.random() * 22);
+    else { q.classList.add("aw-done"); dlg.querySelector(".aw-cite").hidden = false; reloadTimer = setTimeout(reloadWithSaved, 2200); }
+  };
+  step();
 }
 
 // ---- bookmarks ----------------------------------------------------------------
@@ -410,6 +450,5 @@ load(SUPABASE).then(async () => {
   paintBar();
   bar.hidden = false;
   document.documentElement.classList.add("has-account");
-  if (!me) ungate();                     // nobody signed in: nothing to wait for
-}).catch(() => { ungate(); /* offline or blocked: the reader goes on without accounts */ });
+}).catch(() => { /* offline or blocked: the reader goes on without accounts */ });
 })(typeof window === "undefined" ? globalThis : window);
