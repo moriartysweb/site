@@ -6607,7 +6607,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"bb0a61d"}`,
+  const lines = [`App: ${document.title}, build ${"7cb109d"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -6997,7 +6997,7 @@ function variantSays(button){
       : typo
       ? "a misprint in the book itself"
       : button.dataset.grade === "significant"
-        ? `${says} · a change of sense` : says,
+        ? `${says} · a change of sense` : "",       // a plain difference: the row above already names the magazine
     // Moskowitz's own note on the place, where he wrote one -- thirty-odd of them, and
     // some are the only record of the thing they say: that the misprint on folio 645
     // "was apparently corrected sometime after April, 1974" dates the printing the
@@ -7123,9 +7123,11 @@ function showVaryTip(button){
     document.body.appendChild(varyTip);
   }
   varyTip.replaceChildren(...variantLines(button));
-  const small = document.createElement("small");
-  small.textContent = say.why;
-  varyTip.append(small);
+  if (say.why){
+    const small = document.createElement("small");
+    small.textContent = say.why;
+    varyTip.append(small);
+  }
   if (say.aside){
     const em = document.createElement("em");
     em.textContent = say.aside;
