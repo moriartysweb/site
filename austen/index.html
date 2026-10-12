@@ -10,7 +10,8 @@
 <link rel="icon" href="austen.svg" type="image/svg+xml">
 <meta name="theme-color" content="#F6F7FB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#12141C" media="(prefers-color-scheme: dark)">
-<script>if ("serviceWorker" in navigator){ const was = navigator.serviceWorker.controller; navigator.serviceWorker.addEventListener("controllerchange", () => { if (was) location.reload(); }); navigator.serviceWorker.register("sw.js").catch(() => {}); }</script>
+<script src="/account.js" defer></script>
+<script>if ("serviceWorker" in navigator){ const was = navigator.serviceWorker.controller; let used = false; const again = () => { try { if (window.keepPlace) keepPlace(); } catch (e) {} location.reload(); }; for (const t of ["keydown", "pointerdown"]) addEventListener(t, () => { used = true; }, {capture: true, once: true}); navigator.serviceWorker.addEventListener("controllerchange", () => { if (!was) return; if (!used) return again(); addEventListener("visibilitychange", () => { if (document.hidden) again(); }); }); navigator.serviceWorker.register("sw.js").catch(() => {}); }</script>
 <style>
 :root{color-scheme:light dark}
 body{margin:0; font:14px system-ui,-apple-system,"Segoe UI",sans-serif; background:#fafaf9}
@@ -1171,9 +1172,12 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
   text-underline-offset:2px}
 .hlfeedback:hover{color:var(--ink)}
 .about .hlfeedback{display:inline;margin:0;padding:0;border:0;font:inherit;color:var(--ink)}
-.hllink{display:block;margin-top:8px;padding:0;border:0;background:none;font:500 12.5px "IBM Plex Sans",sans-serif;
+.hllink,.hlmark{display:block;margin-top:8px;padding:0;border:0;background:none;font:500 12.5px "IBM Plex Sans",sans-serif;
   color:var(--ink-soft);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-.hllink:hover{color:var(--ink)}
+.hllink:hover,.hlmark:hover{color:var(--ink)}
+/* Only where /account.js has loaded; nothing to bookmark to otherwise. */
+.hlmark{display:none}
+.has-account .hlmark{display:block}
 ::highlight(linked){background:rgba(161,92,0,.24)}
 mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
 mark.k0,.termkey.k0{background:var(--k0)} mark.k1,.termkey.k1{background:var(--k1)} mark.k2,.termkey.k2{background:var(--k2)}
@@ -1857,6 +1861,7 @@ header:has(.simplexline) .pickers{margin-top:26px}
 @media (pointer: coarse){
   .articleopen,.avnew{min-height:44px}
   .hllink,.hlfeedback{min-height:44px;display:flex;align-items:center}
+  .has-account .hlmark{min-height:44px;display:flex;align-items:center}
   .avx{width:48px;height:48px}
 }
 
@@ -6580,17 +6585,18 @@ function highlightsControl(){
       + `<div class="sheethead"><b>Settings</b>`
       + `<button type="button" class="sheetx" aria-label="Close settings">\u00D7</button></div>`
       + `<div class="sheetset"></div>`
-      + `<p class="hlhead">Marks</p>${rows}${copying}${LINK_BUTTON}${FEEDBACK_LINK}</div>`;
+      + `<p class="hlhead">Marks</p>${rows}${copying}${LINK_BUTTON}${BOOKMARK_BUTTON}${FEEDBACK_LINK}</div>`;
   return `<button type="button" class="hlpick" aria-expanded="false" aria-controls="hlpop">`
     + `Show/hide highlights</button>`
     + `<div class="hlpop" id="hlpop" role="dialog" aria-label="Highlights" hidden>`
-    + `<p class="hlhead">What the marks mean</p>${rows}${copying}${LINK_BUTTON}${FEEDBACK_LINK}</div>`;
+    + `<p class="hlhead">What the marks mean</p>${rows}${copying}${LINK_BUTTON}${BOOKMARK_BUTTON}${FEEDBACK_LINK}</div>`;
 }
 
 // The feedback Form is opened in a new tab with its "context" answer filled in, so a bug
 // report says where it was found. The reader sees the answer before sending it.
 const FEEDBACK_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfwotxQAZ77DtylxaMZHr0HDUSlPUK3LRxP-rTN1EfnxhrnCQ/viewform";
 const LINK_BUTTON = `<button type="button" class="hllink">Copy link to this spot</button>`;
+const BOOKMARK_BUTTON = `<button type="button" class="hlmark">Bookmark this spot</button>`;
 const FEEDBACK_LINK = `<a class="hlfeedback" href="${FEEDBACK_FORM}" target="_blank" rel="noopener"`
   + ` title="Opens a form in a new tab, with what you were searching and reading filled in">Send feedback</a>`;
 
@@ -6601,7 +6607,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"7828fff"}`,
+  const lines = [`App: ${document.title}, build ${"bb0a61d"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -6618,6 +6624,10 @@ function feedbackContext(){
 document.addEventListener("click", event => {
   const link = event.target.closest(".hlfeedback");
   if (link) link.href = `${FEEDBACK_FORM}?usp=pp_url&entry.1284476511=${encodeURIComponent(feedbackContext())}`;
+});
+
+document.addEventListener("click", event => {
+  if (event.target.closest(".hlmark") && window.Account) window.Account.bookmark();
 });
 
 function closeHighlights(){
@@ -11069,11 +11079,41 @@ document.addEventListener("click", event => {
 const OPENING = HANDHELD ? "" : EXAMPLES.opening || EXAMPLES.placeholder || "";
 box.value = OPENING;
 drawResults(); drawChart();
-openLinked().then(was => { if (!was) search(OPENING); });
+// A reload that swaps in a new build leaves the reader's search (see keepPlace below).
+let again = null;
+try { again = sessionStorage.getItem("restore-search"); sessionStorage.removeItem("restore-search"); } catch (e) { /* not kept */ }
+if (again !== null){ box.value = again; first = false; }   // not the page's own first search: no tour
+openLinked().then(was => { if (!was) search(again !== null ? again : OPENING); });
 // The page opens ready to be typed on: what is in the box is selected, so the first
 // letter replaces it. Not on a phone, where focus raises the keyboard over the page.
 if (!HANDHELD){ box.focus({preventScroll: true}); box.select(); }
 
+
+// Read by /account.js on killer-serials.com; absent from the artifacts, where it is never loaded.
+window.accountApp = {
+  app: DOUBLEDAY ? "sherlock" : "austen",
+  group: "canon",                        // both readers already share these localStorage keys
+  keys: ["candle", "mending", "folds", "variants", "notes", "filters", "highlights", "canon-leafing",
+         "simplex-leafing", "simplex", "simplex-pages", "simplex-zoom", "simplex-ppi", "rotate-hint"],
+  labels: {candle: "Lamp", mending: "Mended text", folds: "Folds", variants: "Variant readings",
+           notes: "Rare-word notes", filters: "Filters", highlights: "Highlights",
+           "canon-leafing": "Style", "simplex-leafing": "Style in simple mode", simplex: "Simple mode",
+           "simplex-pages": "Pages", "simplex-zoom": "Page size", "simplex-ppi": "Screen scale",
+           "rotate-hint": "Rotate hint"},
+  current: () => {
+    const spot = spotHere(), url = linkHere();
+    return spot && url ? {url, label: spot.start.replace(/^./, c => c.toUpperCase()) + "\u2026"} : null;
+  },
+};
+
+// Called just before the reload that swaps in a new build, so the reader lands where they were:
+// a story is kept as its spot link, a bare search in sessionStorage.
+window.keepPlace = () => {
+  const link = linkHere();
+  if (link){ try { history.replaceState(null, "", link); } catch (e) { /* the address stays */ } return; }
+  const q = box.value.trim();
+  if (q) try { sessionStorage.setItem("restore-search", q); } catch (e) { /* not kept */ }
+};
 </script>
 </body>
 </html>
