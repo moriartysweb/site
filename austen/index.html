@@ -1115,6 +1115,7 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
   color:var(--legend);background:none;border:0;padding:0;margin:0;cursor:pointer}
 .legendary:hover,.legendary[aria-expanded="true"]{background:color-mix(in srgb,var(--legend) 16%,transparent);border-radius:2px}
 /* a favorite quote is quieter: the page's own ink, with a dotted line under it */
+mark[data-item]{cursor:pointer}
 .legendary.favorite{color:inherit;text-decoration:underline dotted var(--legend) 2px;text-underline-offset:4px}
 .legendary:focus-visible{outline:2px solid var(--legend);outline-offset:2px;border-radius:2px}
 /* a scene is its paragraphs, in the same ink */
@@ -4694,6 +4695,8 @@ function isOwn(term, group, word){
 
 function hitSpans(text, at){
   const spans = [];
+  // a search the page ran for the reader (a step to the next note) is not their question: no hits
+  if (active && active.quiet) return spans;
   // Half a word the press broke across a line: it is a hit like any other, and a reader
   // sent to this leaf by searching `Tankerville` should see which word answered. It wears
   // the same colour it would if the word stood whole -- the finder's, or its own term's.
@@ -4981,6 +4984,12 @@ function legendSpans(text, taken, at){
     if (!(favorite ? hl.favorites : hl.legends)) continue;
     const range = legendRange(text, at, start0, len, words);
     if (!range) continue;
+    // A word the reader searched for inside the line keeps its own mark, and the line is drawn
+    // around it; the mark carries the line's note, so that stretch of the quote opens it too.
+    for (const hit of taken)
+      if (hit.open.startsWith("<mark ") && !hit.open.includes("data-note") && !hit.open.includes("data-item")
+          && hit.at < range[1] && hit.at + hit.len > range[0])
+        hit.open = hit.open.replace(/^<mark /, `<mark data-item="${item}" role="button" tabindex="0" `);
     let cut = [range];
     for (const s of [...taken, ...spans]){
       cut = cut.flatMap(([a, b]) => {
@@ -5950,7 +5959,7 @@ function placeNotations(body){
     para.style.position = "relative";
     para.appendChild(n);
   };
-  body.querySelectorAll(".legendary").forEach(btn => {
+  body.querySelectorAll(".legendary, mark[data-item]").forEach(btn => {
     const item = +btn.dataset.item, para = btn.closest(".passage");
     if (seen.has(item) || !para) return;
     seen.add(item);
@@ -6692,7 +6701,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"256aa5b"}`,
+  const lines = [`App: ${document.title}, build ${"20882cd"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -6938,6 +6947,7 @@ function closeNote(){
     const picture = panel.querySelector(".noteimage");
     if (picture) picture.hidden = true;
     panel.querySelectorAll(".rare[aria-expanded='true'], .vary[aria-expanded='true'],"
+                         + " .legendary[aria-expanded='true'], mark[data-item][aria-expanded='true'],"
                          + " mark[data-note][aria-expanded='true']")
          .forEach(button => button.setAttribute("aria-expanded", "false"));
     syncLoupe(panel);
@@ -7243,7 +7253,7 @@ async function openNoteItem(i, delta){
     if (!ask) return;
     first = false;                      // a destination, not the page's own first search
     box.value = ask;
-    await search(ask);
+    await search(ask, {quiet: true});
     if (!active || !active.ranked.some(r => r.code === it.code)) return;
     pick(it.code);
     await settle(() => document.querySelector(".reading .rbody [data-f]"), 20000);   // a first visit is still loading the text
@@ -7363,14 +7373,14 @@ document.addEventListener("scroll", hideVaryTip, true);
 // the marks that are not buttons are keyed like them
 document.addEventListener("keydown", event => {
   if (event.key !== "Enter" && event.key !== " ") return;
-  const mark = event.target.closest && event.target.closest(".rbody .legendary, .rbody .mnote");
+  const mark = event.target.closest && event.target.closest(".rbody .legendary, .rbody .mnote, .rbody mark[data-item]");
   if (!mark) return;
   event.preventDefault();
   mark.click();
 });
 
 document.addEventListener("click", event => {
-  const legend = event.target.closest(".rbody .legendary, .rbody .mnote");
+  const legend = event.target.closest(".rbody .legendary, .rbody .mnote, .rbody mark[data-item]");
   if (legend){ showItemNote(legend); return; }
   const rare0 = event.target.closest(".rbody .rare, .rbody mark[data-note]");
   const vary = !rare0 && event.target.closest(".rbody [data-vary]");
@@ -9146,7 +9156,8 @@ async function openLinked(){
   const [, code, f1, f2, start, end, q] = m;
   first = false;                       // a link is a destination, not the page's first search
   box.value = decodeURIComponent(q);
-  await search(box.value);
+  // a link made with no search entered asks for the passage's own opening words, quoted: not a question
+  await search(box.value, {quiet: box.value === `"${decodeURIComponent(start)}"`});
   if (!active || !active.ranked.some(r => r.code === code)) return true;
   linked = {code, f1: +f1, f2: +f2, start: decodeURIComponent(start), end: decodeURIComponent(end)};
   pick(code);
@@ -11219,7 +11230,7 @@ function askNow(query){
   search(query);
 }
 
-async function search(query){
+async function search(query, options){
   if (!query.trim()) return;
   // the last answer's arrows and its box are about the last question
   clearTour();
@@ -11231,6 +11242,7 @@ async function search(query){
   if (mine !== outstanding) return;  // a newer question came while this one was running
   active = found;
   active.asked = query;               // what the box said, so Enter can tell the answer is current
+  active.quiet = Boolean(options && options.quiet);   // the page's own search: it marks no hits
   form.querySelector("button").disabled = false;
   // A search over part of the book answers in the same voice as a search over all of
   // it, and says "nothing" about leaves it never read. So a short load is said out
