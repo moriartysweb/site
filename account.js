@@ -70,18 +70,31 @@ if (!cfg) return;
 const URL_ = "https://lrmaaozvhmgqbcdvzndq.supabase.co", KEY = "sb_publishable_4_tFYOO2aWapS0mJ6QCmHg_QVZMn9Ft";
 const SUPABASE = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js";
 const SIGNED_IN_AT = "account.signedInAt", RETURN = "account.returnHash";
+// Set once this device has settled which preferences to keep; until then a signed-in landing is held
+// out of sight (see the head script site.py writes) so a reload to apply them is never seen.
+const SETTLED = "account.settled", RELOADED = "account.reloadedAt";
 const keys = cfg.keys, group = cfg.group || cfg.app;
-let db = null, me = null, asking = false, mode = "in", note = "";
+let db = null, me = null, asking = false, recovering = false, mode = "in", note = "";
 let lastPushed = {}, timer = 0, saved = null;
 
 const EYE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYE_OFF = EYE.replace("</svg>", '<path d="M3 3l18 18"/></svg>');
+const GOOGLE_G = '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.8.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.72A5.41 5.41 0 0 1 3.68 9c0-.6.1-1.18.28-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.05l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const kept = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* not kept */ } },
   del(k) { try { localStorage.removeItem(k); } catch (e) { /* not kept */ } },
 };
+// The head script keeps the page out of sight (and types out a quote) until this says it may come back.
+const ungate = () => { if (window.accountReveal) window.accountReveal(); else document.documentElement.classList.remove("account-wait"); };
+// A plain cover for the moment before a reload, so the page is not seen to vanish.
+function veil(text) {
+  const v = document.createElement("div");
+  v.className = "acctveil";
+  v.textContent = text;
+  document.body.appendChild(v);
+}
 const load = src => new Promise((ok, no) => {
   const s = document.createElement("script");
   s.src = src; s.onload = ok; s.onerror = no;
@@ -93,7 +106,7 @@ const style = document.createElement("style");
 style.textContent = `
 .acct{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:6px 14px;font:13px/1.4 system-ui,sans-serif;color:var(--ink-soft,#555)}
 .acct button,.acctd button{font:inherit;padding:5px 12px;border:1px solid var(--rule,#bbb);border-radius:6px;background:var(--ground,#fff);color:var(--ink,#222);cursor:pointer}
-.acctd{max-width:min(420px,92vw);border:1px solid var(--rule,#bbb);border-radius:10px;padding:18px;background:var(--ground,#fff);color:var(--ink,#222);font:14px/1.45 system-ui,sans-serif}
+.acctd{width:min(380px,92vw);box-sizing:border-box;border:1px solid var(--rule,#bbb);border-radius:10px;padding:18px;background:var(--ground,#fff);color:var(--ink,#222);font:14px/1.45 system-ui,sans-serif}
 .acctd::backdrop{background:#0006}
 .acctd h2{margin:0 0 10px;font-size:16px}
 .acctd label{display:block;margin:8px 0 2px;font-size:12.5px}
@@ -105,6 +118,14 @@ style.textContent = `
 .acctd .say{min-height:1.3em;margin:8px 0 0;color:var(--ink-soft,#a33)}
 .acctd ul{margin:6px 0;padding:0;list-style:none;max-height:40vh;overflow:auto}
 .acctd li{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:4px 0}
+.acctveil{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:var(--ground,#fff);color:var(--ink-soft,#555);font:15px system-ui,sans-serif}
+.acctd .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:42px;padding:0 12px;border:1px solid #dadce0;border-radius:4px;background:#fff;color:#3c4043;font:500 14px/1 Roboto,"Helvetica Neue",Arial,sans-serif;cursor:pointer}
+.acctd .gbtn:hover{background:#f8f9fa;border-color:#d2e3fc}
+.acctd .gbtn:focus-visible{outline:2px solid #4285F4;outline-offset:2px}
+.acctd .or{display:flex;align-items:center;gap:12px;margin:14px 0 4px;color:var(--ink-soft,#666);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.acctd .or::before,.acctd .or::after{content:"";flex:1;height:1px;background:var(--rule,#ccc)}
+.acctd .alt{margin:10px 0 0}
+.acctd .linkbtn{border:0;background:none;padding:0;color:inherit;font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .acctd .tagrow{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .acctd .tagchip{padding:3px 9px;border-radius:999px}
 .acctd .tagchip[aria-pressed=true]{background:var(--ink,#222);color:var(--ground,#fff)}
@@ -138,16 +159,29 @@ function openDialog(say) {
 }
 function formView() {
   const up = mode === "up";
-  return `<form data-f="auth"><h2>${up ? "Create an account" : "Sign in"}</h2>
-    <p class="say" data-say>${esc(note)}</p>
+  return `<h2>${up ? "Create an account" : "Sign in"}</h2>
+    <button type="button" class="gbtn" data-a="google">${GOOGLE_G}<span>Continue with Google</span></button>
+    <div class="or" role="separator">or</div>
+    <form data-f="auth"><p class="say" data-say>${esc(note)}</p>
     <label>Email<input name="email" type="email" required autocomplete="email"></label>
     ${up ? `<label>Username (optional)<input name="username" autocomplete="nickname"></label>` : ""}
     <label>Password<span class="pw"><input name="password" type="password" required minlength="8" autocomplete="${up ? "new-password" : "current-password"}">
       <button type="button" data-a="peek" aria-label="Show password" aria-pressed="false">${EYE}</button></span></label>
+    <p class="alt"><button type="button" class="linkbtn" data-a="magic">Email me a login link instead of a password</button>
+      ${up ? "" : ` &middot; <button type="button" class="linkbtn" data-a="forgot">Forgot your password?</button>`}</p>
     <div class="row"><button type="submit">${up ? "Create account" : "Sign in"}</button>
-      <button type="button" data-a="google">Continue with Google</button>
       <button type="button" data-a="mode">${up ? "I have an account" : "Create an account"}</button>
       <button type="button" data-a="close">Cancel</button></div></form>`;
+}
+// Reached by the link in a password-reset email: the library has signed the reader in for this one purpose.
+function openRecovery() {
+  recovering = true;
+  dlg.innerHTML = `<h2>Choose a new password</h2>
+    <form data-f="newpass"><p class="say" data-say></p>
+    <label>New password<span class="pw"><input name="password" type="password" required minlength="8" autocomplete="new-password">
+      <button type="button" data-a="peek" aria-label="Show password" aria-pressed="false">${EYE}</button></span></label>
+    <div class="row"><button type="submit">Save password</button></div></form>`;
+  if (!dlg.open) dlg.showModal();
 }
 function accountView() {
   // Google accounts arrive without a username; this is where they set one (it is also how it is changed).
@@ -171,6 +205,28 @@ dlg.addEventListener("click", async e => {
     const {error} = await db.auth.signInWithOAuth({provider: "google",
       options: {redirectTo: location.origin + location.pathname}});
     if (error) say(error.message);
+  }
+  else if (act === "magic") {
+    // A link to click, no password: it signs the reader in, and makes the account if there is none yet.
+    const email = (dlg.querySelector("input[name=email]").value || "").trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) return say("Enter your email address first.");
+    say("Sending\u2026");
+    const {error} = await db.auth.signInWithOtp({email, options: {emailRedirectTo: location.origin + location.pathname}});
+    if (error) return say(error.message);
+    dlg.innerHTML = `<h2>Check your email</h2>
+      <p>We sent a login link to <b>${esc(email)}</b>. Open it in this browser to sign in; there is no password to remember.</p>
+      <p>You can keep using the search in the meantime.</p>
+      <div class="row"><button type="button" data-a="close">Keep searching</button></div>`;
+  }
+  else if (act === "forgot") {
+    const email = (dlg.querySelector("input[name=email]").value || "").trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) return say("Enter your email address first.");
+    say("Sending\u2026");
+    const {error} = await db.auth.resetPasswordForEmail(email, {redirectTo: location.origin + location.pathname});
+    if (error) return say(error.message);
+    dlg.innerHTML = `<h2>Check your email</h2>
+      <p>If <b>${esc(email)}</b> has an account, we sent a link to choose a new password. Open it in this browser.</p>
+      <div class="row"><button type="button" data-a="close">Keep searching</button></div>`;
   }
   else if (act === "peek") {
     const input = dlg.querySelector("input[name=password]"), on = input.type === "password";
@@ -207,6 +263,12 @@ dlg.addEventListener("submit", async e => {
       return;
     }
     if (!asking) dlg.close();
+  } else if (f.dataset.f === "newpass") {
+    const {error} = await db.auth.updateUser({password: v.password});
+    if (error) return say(error.message);
+    recovering = false;
+    dlg.innerHTML = `<h2>Password updated</h2><p>You are signed in with your new password.</p>
+      <div class="row"><button type="button" data-a="close">Keep searching</button></div>`;
   } else if (f.dataset.f === "name") {
     const {error} = await db.auth.updateUser({data: {username: v.username.trim()}});
     say(error ? error.message : "Username saved.");
@@ -222,20 +284,33 @@ async function pushPrefs(snap) {
 
 async function onSignedIn() {
   const {data, error} = await db.from("app_prefs").select("prefs").eq("app", group).maybeSingle();
-  if (error) return;                     // unreachable is not "nothing saved": never overwrite on a failed read
+  if (error) { ungate(); return; }       // unreachable is not "nothing saved": never overwrite on a failed read
   saved = data ? data.prefs : null;
   const device = snapshot(localStorage, keys), what = plan(device, saved);
   if (what === "load") {
-    apply(localStorage, keys, saved);
-    // storage that will not hold them would reload forever
-    if (!differs(snapshot(localStorage, keys), saved).length) { location.reload(); return; }
+    // Applied from outside, the reader reads them at startup, so the page starts over once. Not twice in a row.
+    let again = 0;
+    try { again = +sessionStorage.getItem(RELOADED) || 0; } catch (e) { /* not kept */ }
+    if (Date.now() - again > 20000) {
+      apply(localStorage, keys, saved);
+      // storage that will not hold them would reload forever
+      if (!differs(snapshot(localStorage, keys), saved).length) {
+        try { sessionStorage.setItem(RELOADED, String(Date.now())); } catch (e) { /* not kept */ }
+        kept.set(SETTLED, me.id);
+        if (window.accountReveal) window.accountReveal(true);      // reloads once the quote has finished
+        else { veil("Loading your saved settings\u2026"); location.reload(); }
+        return;
+      }
+    }
   }
-  if (what === "ask") { asking = true; return askWhich(device); }
+  if (what === "ask") { asking = true; ungate(); return askWhich(device); }
   if (what === "push") await pushPrefs(device);
   else if (isPrefs(saved)) lastPushed = saved;
+  kept.set(SETTLED, me.id);
+  ungate();
   startPolling();
 }
-function onSignedOut() { clearInterval(timer); lastPushed = {}; saved = null; asking = false; }
+function onSignedOut() { clearInterval(timer); lastPushed = {}; saved = null; asking = false; kept.del(SETTLED); }
 
 // A tick costs nothing when nothing changed, and no call site in the app has to know about sync.
 function startPolling() {
@@ -247,6 +322,7 @@ function startPolling() {
 }
 
 function askWhich(device) {
+  if (recovering) return;                // choosing a password comes first; the question comes at the next visit
   const names = differs(device, saved).map(k => esc((cfg.labels && cfg.labels[k]) || k));
   dlg.innerHTML = `<h2>Your preferences differ</h2>
     <p>This device is set differently from your saved preferences. They differ in: ${names.join(", ")}.</p>
@@ -297,11 +373,18 @@ function paintBookmarks() {
 
 // ---- session ------------------------------------------------------------------
 function onAuth(event, session) {
+  if (session && expired(parseInt(kept.get(SIGNED_IN_AT), 10), Date.now())) {
+    // Local only, so the other devices stay signed in; the stamp goes too or the next sign-in is refused.
+    kept.del(SIGNED_IN_AT);
+    db.auth.signOut({scope: "local"}).catch(() => {});
+    session = null;                      // local preferences stay as they are
+  }
   const was = me;
   me = session ? session.user : null;
   if (me && kept.get(SIGNED_IN_AT) === null) kept.set(SIGNED_IN_AT, String(Date.now()));
   if (!me) kept.del(SIGNED_IN_AT);
   paintBar();
+  if (event === "PASSWORD_RECOVERY" && me) openRecovery();
   if (me && !was) onSignedIn(); else if (!me && was) onSignedOut();
 }
 
@@ -313,7 +396,8 @@ root.Account = {
 
 load(SUPABASE).then(async () => {
   db = root.supabase.createClient(URL_, KEY, {auth: {flowType: "pkce"}});
-  // getSession() waits for the library to exchange a returning ?code=
+  // listening first: a password-reset link's event is sent while getSession() exchanges the returning ?code=
+  db.auth.onAuthStateChange(onAuth);
   const {data} = await db.auth.getSession();
   if (/[?&]code=/.test(location.search)) {
     history.replaceState(null, "", withoutCode(location.href));
@@ -322,16 +406,10 @@ load(SUPABASE).then(async () => {
     try { was = sessionStorage.getItem(RETURN); sessionStorage.removeItem(RETURN); } catch (e) { /* not kept */ }
     if (was && !location.hash) { location.hash = was; location.reload(); return; }
   }
-  if (data.session && expired(parseInt(kept.get(SIGNED_IN_AT), 10), Date.now())) {
-    // Local only, so the other devices stay signed in; the stamp goes too or the next sign-in is refused.
-    kept.del(SIGNED_IN_AT);
-    await db.auth.signOut({scope: "local"}).catch(() => {});
-    data.session = null;                 // local preferences stay as they are
-  }
-  db.auth.onAuthStateChange(onAuth);
-  onAuth("INITIAL", data.session);
+  onAuth("INITIAL_SESSION", data.session);
   paintBar();
   bar.hidden = false;
   document.documentElement.classList.add("has-account");
-}).catch(() => { /* offline or blocked: the reader goes on without accounts */ });
+  if (!me) ungate();                     // nobody signed in: nothing to wait for
+}).catch(() => { ungate(); /* offline or blocked: the reader goes on without accounts */ });
 })(typeof window === "undefined" ? globalThis : window);
