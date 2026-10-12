@@ -415,6 +415,29 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 .cvx{position:absolute;top:8px;right:10px;width:30px;height:30px;border:0;border-radius:50%;
   background:none;color:var(--ink-soft);font-size:22px;line-height:1;cursor:pointer}
 .cvx:hover,.cvx:focus-visible{background:var(--rule-soft);color:var(--ink);outline:none}
+/* The selection popup: Copy and "Create a bookmark here", under the words that were selected.
+   Above the copy toast (17) and the arrows (14). The buttons do not take a selection of their own. */
+.selpop{position:fixed;z-index:30;display:block;padding:6px;border-radius:9px;
+  background:var(--panel);border:1px solid var(--rule);color:var(--ink);
+  box-shadow:0 10px 26px rgba(10,14,30,.26);font:500 13px "IBM Plex Sans",sans-serif;
+  -webkit-user-select:none;user-select:none}
+.selpop[hidden]{display:none}
+.selpop .spmain,.selpop .sprow{display:flex;gap:6px}
+.selpop button{font:inherit;padding:6px 12px;border:1px solid var(--rule);border-radius:6px;
+  background:var(--panel);color:var(--ink);cursor:pointer}
+.selpop button:hover{background:var(--rule-soft)}
+.selpop button[hidden]{display:none}
+.selpop .sptag{min-width:min(280px,calc(100vw - 32px))}
+.selpop label{display:block;font-size:12px;color:var(--ink-soft);margin:2px 2px 4px}
+.selpop .spbox{position:relative;display:block;margin-top:3px}
+.selpop .sptext{width:100%;box-sizing:border-box;padding:7px 30px 7px 8px;font:inherit;font-size:14px;
+  border:1px solid var(--rule);border-radius:6px;background:var(--ground);color:var(--ink);
+  -webkit-user-select:text;user-select:text}
+.selpop .spclear{position:absolute;right:3px;top:50%;transform:translateY(-50%);padding:0 7px;border:0;
+  background:none;font-size:18px;line-height:1;color:var(--ink-soft)}
+.selpop .sprow{margin-top:8px}
+.selpop .spsay{margin:6px 2px 0;min-height:1.2em;font-size:12px;color:var(--ink-soft)}
+@media (pointer:coarse){ .selpop button{min-height:44px} .selpop .sptext{min-height:44px} }
 .reading{position:fixed;top:14px;left:50%;transform:translateX(-50%);
   width:min(1160px,calc(100vw - 60px));z-index:20;background:var(--panel);
   border:1px solid var(--ink);border-radius:8px;padding:16px 44px 16px 18px;
@@ -1172,12 +1195,9 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
   text-underline-offset:2px}
 .hlfeedback:hover{color:var(--ink)}
 .about .hlfeedback{display:inline;margin:0;padding:0;border:0;font:inherit;color:var(--ink)}
-.hllink,.hlmark{display:block;margin-top:8px;padding:0;border:0;background:none;font:500 12.5px "IBM Plex Sans",sans-serif;
+.hllink{display:block;margin-top:8px;padding:0;border:0;background:none;font:500 12.5px "IBM Plex Sans",sans-serif;
   color:var(--ink-soft);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-.hllink:hover,.hlmark:hover{color:var(--ink)}
-/* Only where /account.js has loaded; nothing to bookmark to otherwise. */
-.hlmark{display:none}
-.has-account .hlmark{display:block}
+.hllink:hover{color:var(--ink)}
 ::highlight(linked){background:rgba(161,92,0,.24)}
 mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
 mark.k0,.termkey.k0{background:var(--k0)} mark.k1,.termkey.k1{background:var(--k1)} mark.k2,.termkey.k2{background:var(--k2)}
@@ -1861,7 +1881,6 @@ header:has(.simplexline) .pickers{margin-top:26px}
 @media (pointer: coarse){
   .articleopen,.avnew{min-height:44px}
   .hllink,.hlfeedback{min-height:44px;display:flex;align-items:center}
-  .has-account .hlmark{min-height:44px;display:flex;align-items:center}
   .avx{width:48px;height:48px}
 }
 
@@ -2292,6 +2311,10 @@ footer{margin-top:26px;padding-top:13px;border-top:1px solid var(--rule);color:v
   --k4:color-mix(in srgb,#FAD9BC 65%,var(--paper));
   --k5:color-mix(in srgb,#DFD5F4 65%,var(--paper));
 }
+
+/* By day the leaf is cream, and the page's dark-theme gold is 1.3 to one on it; the legendary
+   lines, scenes and notations take a brown that is 5.9 to one. The two dark leaves keep the gold. */
+.reading.authentic:not(.bynight):not(.bydark){--legend:#7A4800}
 
 /* ---- night reading, plainly ------------------------------------------------
    Not every dark room wants a candle. This is the press's face and measure on a dark
@@ -6585,18 +6608,17 @@ function highlightsControl(){
       + `<div class="sheethead"><b>Settings</b>`
       + `<button type="button" class="sheetx" aria-label="Close settings">\u00D7</button></div>`
       + `<div class="sheetset"></div>`
-      + `<p class="hlhead">Marks</p>${rows}${copying}${LINK_BUTTON}${BOOKMARK_BUTTON}${FEEDBACK_LINK}</div>`;
+      + `<p class="hlhead">Marks</p>${rows}${copying}${LINK_BUTTON}${FEEDBACK_LINK}</div>`;
   return `<button type="button" class="hlpick" aria-expanded="false" aria-controls="hlpop">`
     + `Show/hide highlights</button>`
     + `<div class="hlpop" id="hlpop" role="dialog" aria-label="Highlights" hidden>`
-    + `<p class="hlhead">What the marks mean</p>${rows}${copying}${LINK_BUTTON}${BOOKMARK_BUTTON}${FEEDBACK_LINK}</div>`;
+    + `<p class="hlhead">What the marks mean</p>${rows}${copying}${LINK_BUTTON}${FEEDBACK_LINK}</div>`;
 }
 
 // The feedback Form is opened in a new tab with its "context" answer filled in, so a bug
 // report says where it was found. The reader sees the answer before sending it.
 const FEEDBACK_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfwotxQAZ77DtylxaMZHr0HDUSlPUK3LRxP-rTN1EfnxhrnCQ/viewform";
 const LINK_BUTTON = `<button type="button" class="hllink">Copy link to this spot</button>`;
-const BOOKMARK_BUTTON = `<button type="button" class="hlmark">Bookmark this spot</button>`;
 const FEEDBACK_LINK = `<a class="hlfeedback" href="${FEEDBACK_FORM}" target="_blank" rel="noopener"`
   + ` title="Opens a form in a new tab, with what you were searching and reading filled in">Send feedback</a>`;
 
@@ -6607,7 +6629,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"7cb109d"}`,
+  const lines = [`App: ${document.title}, build ${"e037226"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -6624,10 +6646,6 @@ function feedbackContext(){
 document.addEventListener("click", event => {
   const link = event.target.closest(".hlfeedback");
   if (link) link.href = `${FEEDBACK_FORM}?usp=pp_url&entry.1284476511=${encodeURIComponent(feedbackContext())}`;
-});
-
-document.addEventListener("click", event => {
-  if (event.target.closest(".hlmark") && window.Account) window.Account.bookmark();
 });
 
 function closeHighlights(){
@@ -7498,7 +7516,7 @@ function reading(hit){
       + `${LIGHT_ICON[how]}</button>`).join("")
       + `<span class="lampsay"></span>`;
     el.querySelector(".rhead").appendChild(lamp);
-    showCandle();
+    showCandle(el);
   }
   // The key to the marks and the switch for each, in a popover under one link. The rare
   // words' dial lives inside it: how far down the rarity the underlines go, off included,
@@ -7575,14 +7593,16 @@ const LIGHT_TIPS = {candle: "Read by candle \u2014 the leaf lit from the pointer
 //
 // .bynight and .bydark are what change the leaf, and they are set from the switch
 // rather than from the theme -- which is what lets the candle be struck in daylight.
-function showCandle(){
-  showRoom();
-  document.querySelectorAll(".reading").forEach(el => {
+function showCandle(only){
+  // A panel still being built is not in the document yet: it is handed in, or it never gets its light.
+  const panels = only ? [only] : [...document.querySelectorAll(".reading")];
+  if (!only) showRoom();
+  panels.forEach(el => {
     el.classList.toggle("bynight", lamplight === "candle");
     el.classList.toggle("bydark", lamplight === "night");
     el.classList.toggle("daylight", lamplight === "day");
   });
-  document.querySelectorAll(".lamp").forEach(box => {
+  (only ? [only] : [document]).forEach(scope => scope.querySelectorAll(".lamp").forEach(box => {
     box.querySelectorAll(".lampon").forEach(b => {
       const on = b.dataset.light === lamplight;
       b.classList.toggle("on", on);
@@ -7590,7 +7610,7 @@ function showCandle(){
     });
     const say = box.querySelector(".lampsay");
     if (say) say.textContent = LIGHT_SAYS[lamplight] || "";
-  });
+  }));
 }
 
 // Whether the passage is shown entire. Said in the switch, and remembered.
@@ -8879,17 +8899,21 @@ function spotHere(){
     text = a ? flowOf(body, 0, a).text : "";
   }
   if (!a || !z) return null;
-  const w = squash(text).split(" ").filter(Boolean);
+  let w = squash(text).split(" ").filter(Boolean);
+  // a word or two selected stands for the paragraph it is in
+  if (w.length < 3 && a === z && a){ w = squash(flowOf(body, 0, a).text).split(" ").filter(Boolean); }
   if (w.length < 3) return null;
   const short = w.length <= 2 * LINK_WORDS + 2;
   return {f1: +a.dataset.f, f2: +z.dataset.f, start: (short ? w : w.slice(0, LINK_WORDS)).join(" "),
           end: short ? "" : w.slice(-LINK_WORDS).join(" ")};
 }
 
+// With no search entered the link searches for the passage's own opening words, which always
+// finds the story: a story opens only from a search.
 function linkHere(){
   const spot = spotHere();
-  const query = (box.value || "").trim();
-  if (!spot || !query) return null;
+  if (!spot) return null;
+  const query = (box.value || "").trim() || `"${spot.start}"`;
   return `${location.origin}${location.pathname}#go=2/${picked}/${spot.f1}/${spot.f2}/`
     + `${encodeURIComponent(spot.start)}/${encodeURIComponent(spot.end)}/${encodeURIComponent(query)}`;
 }
@@ -8956,6 +8980,141 @@ document.addEventListener("click", async event => {
   catch (e) { b.textContent = "Link is in the address bar"; }
   setTimeout(() => { b.textContent = "Copy link to this spot"; }, 2200);
 });
+// ---- the selection popup ---------------------------------------------------------
+// Select some of the passage and a small popup opens under it: Copy, where the automatic copy
+// would not have (it is off, or the selection is one word), and a bookmark that asks for an
+// optional tag. Bookmarks are the account's job (/account.js); without it there is only Copy.
+let selpop = null, selBusy = false, selTimer = 0, selNow = null, markDraft = null, mouseDown = false;
+
+const canBookmark = () => Boolean(window.Account) && document.documentElement.classList.contains("has-account");
+
+function selectionNow(){
+  const body = document.querySelector(".rbody"), sel = document.getSelection();
+  if (!body || !picked || !sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  if (!body.contains(range.commonAncestorContainer)) return null;
+  const text = sel.toString().replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  const rects = range.getClientRects();
+  return {text, words: text.split(" ").length, rect: rects[rects.length - 1] || range.getBoundingClientRect()};
+}
+
+function buildSelpop(){
+  selpop = document.createElement("div");
+  selpop.className = "selpop";
+  selpop.hidden = true;
+  selpop.setAttribute("role", "toolbar");
+  selpop.setAttribute("aria-label", "Selection actions");
+  selpop.innerHTML = `<div class="spmain"><button type="button" class="spcopy">Copy</button>`
+    + `<button type="button" class="spmark">Create a bookmark here</button></div>`
+    + `<form class="sptag" hidden><label>Optional tag<span class="spbox">`
+    + `<input class="sptext" name="tag" type="text" maxlength="40" autocomplete="off" spellcheck="false">`
+    + `<button type="button" class="spclear" aria-label="Clear the tag">×</button></span></label>`
+    + `<div class="sprow"><button type="submit" class="spsave">Save bookmark</button>`
+    + `<button type="button" class="spcancel">Cancel</button></div><p class="spsay" role="status"></p></form>`;
+  document.body.appendChild(selpop);
+  // a click on a button must not clear the selection it acts on; the tag box needs the focus
+  selpop.addEventListener("mousedown", event => { if (!event.target.closest("input")) event.preventDefault(); });
+  selpop.addEventListener("click", onSelpopClick);
+  selpop.addEventListener("submit", event => { event.preventDefault(); saveMark(); });
+  selpop.addEventListener("keydown", event => { if (event.key === "Escape"){ event.stopPropagation(); hideSelpop(); } });
+}
+
+const tagBox = () => selpop.querySelector(".sptext");
+const sayPop = t => { selpop.querySelector(".spsay").textContent = t; };
+
+function showSelpop(info){
+  const canCopy = !hl.autocopy || info.words === 1, canMark = canBookmark();
+  if (!canCopy && !canMark) return hideSelpop();
+  if (!selpop) buildSelpop();
+  selNow = info;
+  selpop.querySelector(".spmain").hidden = false;
+  selpop.querySelector(".sptag").hidden = true;
+  const copy = selpop.querySelector(".spcopy");
+  copy.hidden = !canCopy;
+  copy.textContent = "Copy";
+  selpop.querySelector(".spmark").hidden = !canMark;
+  selpop.hidden = false;
+  const r = info.rect, w = selpop.offsetWidth, h = selpop.offsetHeight;
+  const below = r.bottom + 8 + h <= innerHeight - 8;
+  selpop.style.left = Math.min(Math.max(8, r.left), Math.max(8, innerWidth - w - 8)) + "px";
+  selpop.style.top = Math.max(8, below ? r.bottom + 8 : r.top - h - 8) + "px";
+}
+
+function hideSelpop(){
+  if (selpop) selpop.hidden = true;
+  selBusy = false;
+  markDraft = null;
+}
+
+function syncSelpop(){
+  if (selBusy || mouseDown) return;
+  const info = selectionNow();
+  if (info) showSelpop(info); else hideSelpop();
+}
+// shown once the selection has settled, not while it is still being dragged out
+document.addEventListener("selectionchange", () => { clearTimeout(selTimer); selTimer = setTimeout(syncSelpop, 350); });
+document.addEventListener("mousedown", event => {
+  if (event.target.closest(".selpop")) return;
+  mouseDown = true;
+  if (selBusy) hideSelpop();
+}, true);
+document.addEventListener("mouseup", () => {
+  if (!mouseDown) return;
+  mouseDown = false;
+  clearTimeout(selTimer);
+  selTimer = setTimeout(syncSelpop, 60);
+}, true);
+document.addEventListener("scroll", () => { if (selpop && !selpop.hidden && !selBusy) hideSelpop(); }, true);
+
+async function onSelpopClick(event){
+  const b = event.target.closest("button");
+  if (!b) return;
+  if (b.classList.contains("spcopy")) return copyNow(b);
+  if (b.classList.contains("spmark")) return startMark();
+  if (b.classList.contains("spclear")){ tagBox().value = ""; tagBox().focus(); return; }
+  if (b.classList.contains("spcancel")) return hideSelpop();
+}
+
+async function copyNow(btn){
+  const cited = selectionCited();
+  let ok;
+  if (cited){
+    ok = await writeClipboard(cited);
+    if (!ok) return copyRefused(cited);
+    showCopied(cited, "copied");
+  } else {
+    const plain = {text: selNow.text, html: escHTML(selNow.text)};
+    try { await navigator.clipboard.writeText(plain.text); ok = true; } catch (e) { ok = legacyCopy(plain); }
+  }
+  btn.textContent = ok ? "Copied" : "Press Ctrl/Cmd+C";
+  setTimeout(hideSelpop, ok ? 800 : 2200);
+}
+
+async function startMark(){
+  if (!window.Account.user()){ hideSelpop(); return window.Account.prompt("Sign in to bookmark this passage."); }
+  // taken from the selection now, before the tag box takes the focus and the selection with it
+  const spot = spotHere(), url = linkHere();
+  if (!spot || !url) return;
+  markDraft = {url, label: spot.start.replace(/^./, c => c.toUpperCase()) + "…"};
+  selBusy = true;
+  selpop.querySelector(".spmain").hidden = true;
+  selpop.querySelector(".sptag").hidden = false;
+  sayPop("");
+  const box = tagBox();
+  box.value = window.Account.lastTag();
+  box.focus();
+  box.select();          // typing replaces the remembered tag; a click puts the cursor in it
+}
+
+async function saveMark(){
+  if (!markDraft) return;
+  sayPop("Saving…");
+  const res = await window.Account.saveBookmark({...markDraft, tag: tagBox().value});
+  if (res.ok){ sayPop("Bookmarked"); setTimeout(hideSelpop, 900); }
+  else if (res.signedOut){ hideSelpop(); window.Account.prompt("Sign in to bookmark this passage."); }
+  else sayPop(res.error);
+}
 function drawChart(){
   if (simplexOn) return;                      // simple mode draws none of this
   const chart = document.getElementById("chart");
@@ -11081,11 +11240,19 @@ document.addEventListener("click", event => {
 const OPENING = HANDHELD ? "" : EXAMPLES.opening || EXAMPLES.placeholder || "";
 box.value = OPENING;
 drawResults(); drawChart();
-// A reload that swaps in a new build leaves the reader's search (see keepPlace below).
+// A reload that swaps in a new build leaves the reader's search and open story (see keepPlace below).
 let again = null;
-try { again = sessionStorage.getItem("restore-search"); sessionStorage.removeItem("restore-search"); } catch (e) { /* not kept */ }
-if (again !== null){ box.value = again; first = false; }   // not the page's own first search: no tour
-openLinked().then(was => { if (!was) search(again !== null ? again : OPENING); });
+try {
+  const raw = sessionStorage.getItem("restore-search");
+  sessionStorage.removeItem("restore-search");
+  if (raw !== null) again = raw.startsWith("{") ? JSON.parse(raw) : {q: raw};
+} catch (e) { again = null; }
+if (again){ box.value = again.q || ""; first = false; }   // not the page's own first search: no tour
+openLinked().then(async was => {
+  if (was) return;
+  await search(again ? box.value : OPENING);
+  if (again && again.story && active && active.ranked.some(r => r.code === again.story)) pick(again.story);
+});
 // The page opens ready to be typed on: what is in the box is selected, so the first
 // letter replaces it. Not on a phone, where focus raises the keyboard over the page.
 if (!HANDHELD){ box.focus({preventScroll: true}); box.select(); }
@@ -11102,19 +11269,15 @@ window.accountApp = {
            "canon-leafing": "Style", "simplex-leafing": "Style in simple mode", simplex: "Simple mode",
            "simplex-pages": "Pages", "simplex-zoom": "Page size", "simplex-ppi": "Screen scale",
            "rotate-hint": "Rotate hint"},
-  current: () => {
-    const spot = spotHere(), url = linkHere();
-    return spot && url ? {url, label: spot.start.replace(/^./, c => c.toUpperCase()) + "\u2026"} : null;
-  },
 };
 
 // Called just before the reload that swaps in a new build, so the reader lands where they were:
-// a story is kept as its spot link, a bare search in sessionStorage.
+// a story with a spot is kept as its link, otherwise the search and open story go in sessionStorage.
 window.keepPlace = () => {
   const link = linkHere();
   if (link){ try { history.replaceState(null, "", link); } catch (e) { /* the address stays */ } return; }
   const q = box.value.trim();
-  if (q) try { sessionStorage.setItem("restore-search", q); } catch (e) { /* not kept */ }
+  if (q || picked) try { sessionStorage.setItem("restore-search", JSON.stringify({q, story: picked})); } catch (e) { /* not kept */ }
 };
 </script>
 </body>

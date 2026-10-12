@@ -41,8 +41,28 @@ function withoutCode(href) {
   return u.toString();
 }
 
+// Plain text only: control characters and angle brackets go, whitespace collapses, length is capped.
+function cleanText(s, max) {
+  const t = String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f<>]/g, " ").replace(/\s+/g, " ").trim();
+  return Array.from(t).slice(0, max).join("");
+}
+// A stored link is only ever shown as a link when it is http(s) and on this site (or the page's own host).
+function safeUrl(u, origin) {
+  try {
+    const link = new URL(u), here = new URL(origin);
+    if (!/^https?:$/.test(link.protocol)) return null;
+    return [here.hostname, "killer-serials.com"].includes(link.hostname) ? link.href : null;
+  } catch (e) { return null; }
+}
+function tagCounts(rows) {
+  const n = new Map();
+  let untagged = 0;
+  for (const r of rows) { if (r.project) n.set(r.project, (n.get(r.project) || 0) + 1); else untagged++; }
+  return {tags: [...n].sort((a, b) => a[0].localeCompare(b[0])), untagged};
+}
+
 if (typeof window === "undefined") {
-  module.exports = {withoutCode, snapshot, differs, isPrefs, plan, apply, expired, shouldPush, SIX_MONTHS};
+  module.exports = {cleanText, safeUrl, tagCounts, withoutCode, snapshot, differs, isPrefs, plan, apply, expired, shouldPush, SIX_MONTHS};
   return;
 }
 const cfg = window.accountApp;
@@ -85,6 +105,10 @@ style.textContent = `
 .acctd .say{min-height:1.3em;margin:8px 0 0;color:var(--ink-soft,#a33)}
 .acctd ul{margin:6px 0;padding:0;list-style:none;max-height:40vh;overflow:auto}
 .acctd li{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:4px 0}
+.acctd .tagrow{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.acctd .tagchip{padding:3px 9px;border-radius:999px}
+.acctd .tagchip[aria-pressed=true]{background:var(--ink,#222);color:var(--ground,#fff)}
+.acctd .tagtext{color:var(--ink-soft,#666);margin-left:6px}
 .acctd h3{margin:10px 0 2px;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
 `;
 document.head.appendChild(style);
@@ -126,7 +150,12 @@ function formView() {
       <button type="button" data-a="close">Cancel</button></div></form>`;
 }
 function accountView() {
-  return `<h2>Account</h2><p class="say" data-say>${esc(note)}</p><div data-extra></div>
+  // Google accounts arrive without a username; this is where they set one (it is also how it is changed).
+  return `<h2>Account</h2><p class="say" data-say>${esc(note)}</p>
+    <form data-f="name"><label>Username<input name="username" maxlength="40" autocomplete="nickname"
+      value="${esc(me.user_metadata.username || "")}" placeholder="${esc(me.email)}"></label>
+      <div class="row"><button type="submit">Save username</button></div></form>
+    <div data-extra></div>
     <div class="row"><button type="button" data-a="out">Sign out</button><button type="button" data-a="close">Close</button></div>`;
 }
 const say = t => { note = t; const el = dlg.querySelector("[data-say]"); if (el) el.textContent = t; };
@@ -156,6 +185,7 @@ dlg.addEventListener("click", async e => {
     await pushPrefs(snapshot(localStorage, keys));
     asking = false; dlg.close(); startPolling();
   }
+  else if (act === "tag" || act === "tag-all") { tagFilter = act === "tag" ? el.dataset.tag : null; paintBookmarks(); }
   else if (act === "del") { await db.from("bookmarks").delete().eq("id", el.dataset.id); listBookmarks(); }
 });
 dlg.addEventListener("submit", async e => {
@@ -177,13 +207,9 @@ dlg.addEventListener("submit", async e => {
       return;
     }
     if (!asking) dlg.close();
-  } else if (f.dataset.f === "mark") {
-    const here = cfg.current && cfg.current();
-    if (!here) return say("That spot is no longer selected.");
-    const {error} = await db.from("bookmarks").insert(
-      {app: cfg.app, url: here.url, label: v.label.trim(), project: v.project.trim() || null});
-    if (error) return say(error.message);
-    dlg.close();
+  } else if (f.dataset.f === "name") {
+    const {error} = await db.auth.updateUser({data: {username: v.username.trim()}});
+    say(error ? error.message : "Username saved.");
   }
 });
 
@@ -230,29 +256,43 @@ function askWhich(device) {
 }
 
 // ---- bookmarks ----------------------------------------------------------------
-function bookmark() {
-  if (!me) { mode = "in"; return openDialog("Sign in to bookmark this passage."); }
-  const here = cfg.current && cfg.current();
-  if (!here) return openDialog("Enter a search and select or scroll to a passage to bookmark it.");
-  dlg.innerHTML = `<form data-f="mark"><h2>Bookmark this spot</h2><p class="say" data-say></p>
-    <label>Name<input name="label" required value="${esc(here.label)}"></label>
-    <label>Project (optional)<input name="project" list="acct-projects"></label><datalist id="acct-projects"></datalist>
-    <div class="row"><button type="submit">Save bookmark</button><button type="button" data-a="close">Cancel</button></div></form>`;
-  dlg.showModal();
-  db.from("bookmarks").select("project").not("project", "is", null).then(({data}) => {
-    const list = dlg.querySelector("#acct-projects");
-    if (list && data) list.innerHTML = [...new Set(data.map(r => r.project))].map(p => `<option value="${esc(p)}">`).join("");
-  });
+const LAST_TAG = "account.lastTag";
+let marks = [], tagFilter = null;        // tagFilter: null is all, "" is untagged, else a tag
+
+// For an app's own "bookmark here" control. A tag is plain text, and the same tag is offered next time.
+async function saveBookmark({url, label, tag}) {
+  if (!me) return {signedOut: true};
+  const link = safeUrl(url, location.origin), name = cleanText(label, 200), project = cleanText(tag, 40) || null;
+  if (!link || !name) return {error: "That passage cannot be bookmarked."};
+  const {error} = await db.from("bookmarks").insert({app: cfg.app, url: link, label: name, project});
+  if (error) return {error: error.message};
+  if (project) kept.set(LAST_TAG, project); else kept.del(LAST_TAG);
+  return {ok: true};
 }
+
 async function listBookmarks() {
   const {data, error} = await db.from("bookmarks").select("*").order("created_at", {ascending: false});
+  if (error) { marks = []; return paintBookmarks(); }
+  marks = data;
+  paintBookmarks();
+}
+function paintBookmarks() {
   const box = dlg.querySelector("[data-extra]");
   if (!box) return;
-  if (error || !data.length) { box.innerHTML = error ? "" : "<p>No bookmarks yet.</p>"; return; }
-  const by = {};
-  for (const b of data) (by[b.project || "No project"] = by[b.project || "No project"] || []).push(b);
-  box.innerHTML = Object.entries(by).map(([p, rows]) => `<h3>${esc(p)}</h3><ul>` + rows.map(b =>
-    `<li><a href="${esc(b.url)}">${esc(b.label)}</a><button type="button" data-a="del" data-id="${esc(b.id)}" aria-label="Delete bookmark">×</button></li>`).join("") + "</ul>").join("");
+  if (!marks.length) { box.innerHTML = "<p>No bookmarks yet.</p>"; return; }
+  const {tags, untagged} = tagCounts(marks);
+  if (tagFilter !== null && !(tagFilter === "" ? untagged : tags.some(t => t[0] === tagFilter))) tagFilter = null;
+  const chip = (label, value, n) =>
+    `<button type="button" class="tagchip" data-a="${value === null ? "tag-all" : "tag"}" data-tag="${esc(value === null ? "" : value)}" aria-pressed="${tagFilter === value}">${esc(label)} <small>${n}</small></button>`;
+  const shown = marks.filter(b => tagFilter === null || (b.project || "") === tagFilter);
+  box.innerHTML = `<div class="tagrow">${chip("All", null, marks.length)}`
+    + tags.map(([t, n]) => chip(t, t, n)).join("") + (untagged ? chip("No tag", "", untagged) : "") + `</div><ul>`
+    + shown.map(b => {
+        const href = safeUrl(b.url, location.origin);
+        return `<li>${href ? `<a href="${esc(href)}">${esc(b.label)}</a>` : `<span>${esc(b.label)}</span>`}`
+          + (b.project ? ` <small class="tagtext">${esc(b.project)}</small>` : "")
+          + `<button type="button" data-a="del" data-id="${esc(b.id)}" aria-label="Delete bookmark">\u00D7</button></li>`;
+      }).join("") + `</ul>`;
 }
 
 // ---- session ------------------------------------------------------------------
@@ -265,7 +305,11 @@ function onAuth(event, session) {
   if (me && !was) onSignedIn(); else if (!me && was) onSignedOut();
 }
 
-root.Account = {open: () => openDialog(), user: () => me, bookmark};
+root.Account = {
+  open: () => openDialog(), user: () => me, saveBookmark,
+  lastTag: () => kept.get(LAST_TAG) || "",
+  prompt: say => { mode = "in"; openDialog(say); },      // the sign-in dialog, with a reason
+};
 
 load(SUPABASE).then(async () => {
   db = root.supabase.createClient(URL_, KEY, {auth: {flowType: "pkce"}});
