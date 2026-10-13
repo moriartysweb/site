@@ -137,6 +137,8 @@ h1{font:600 30px/1.1 "Barlow Condensed",system-ui,sans-serif;letter-spacing:.02e
   box-shadow:0 10px 24px rgba(10,14,30,.2)}
 .egs[hidden]{display:none}
 .egs li{margin:0}
+.egshead{padding:3px 9px 2px;font:500 11px "IBM Plex Sans",sans-serif;color:var(--ink-soft);opacity:.8;
+  -webkit-user-select:none;user-select:none;cursor:default}
 /* the field's own type, greyed: a suggestion, not yet an answer */
 .try{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;cursor:pointer;
   padding:5px 9px;border:0;border-radius:5px;background:none;
@@ -1228,6 +1230,9 @@ mark[data-item]{cursor:pointer}
   color:var(--ink-soft);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .hllink:hover{color:var(--ink)}
 ::highlight(linked){background:rgba(161,92,0,.24)}
+
+/* Furniture drawn between the book's paragraphs is not the book: a selection across it, and so a copy, leaves it out. */
+.pbreak,.refold,.unfold{-webkit-user-select:none;user-select:none}
 mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
 mark.k0,.termkey.k0{background:var(--k0)} mark.k1,.termkey.k1{background:var(--k1)} mark.k2,.termkey.k2{background:var(--k2)}
 mark.k3,.termkey.k3{background:var(--k3)} mark.k4,.termkey.k4{background:var(--k4)} mark.k5,.termkey.k5{background:var(--k5)}
@@ -2208,7 +2213,7 @@ const DATA = JSON.parse(document.getElementById("data").textContent);
 // The searches offered under the field, and the field's placeholder: {placeholder, list}.
 // Injected per corpus, because an example is a claim about a particular book -- "printed
 // once" is only true of the corpus it was counted in.
-const EXAMPLES = {"opening":"cane snake bell-pull","placeholder":"cane snake bell-pull","list":[{"q":"tufted brows","note":"words"},{"q":"best and the wisest man whom I have ever known","note":"a quotation"},{"q":"The Stock-Broker\u2019s Clerk","note":"a story's name"},{"q":"Godfrey Norton","note":"a person"},{"q":"dolichocephalic","note":"printed once"},{"q":"hapax","note":"not in the canon"}]};
+const EXAMPLES = {"opening":"cane snake bell-pull","placeholder":"cane snake bell-pull","list":[{"q":"tufted brows","note":"words"},{"q":"best and the wisest man whom I have ever known","note":"a quotation"},{"q":"\"a maze of fantastic tracery\"","note":"an exact phrase"},{"q":"The Stock-Broker\u2019s Clerk","note":"a story's name"},{"q":"Godfrey Norton","note":"a person"},{"q":"dolichocephalic","note":"printed once"},{"q":"hapax","note":"not in the canon"}]};
 // The pages hold the first edition as it was printed. Two layers sit over it, kept
 // apart because they are different kinds of claim:
 //
@@ -2844,6 +2849,13 @@ function asCased(query){
   return /^[A-Z]/.test(inner) ? inner : null;
 }
 
+// One lower-case word in quotation marks: that word and no other, in any case.
+function asExact(query){
+  const m = QUOTED.exec(String(query));
+  const inner = m && m[1].trim();
+  return inner && /^[a-z][a-z'-]*$/.test(inner) && casedTerms(inner).length === 1 ? inner : null;
+}
+
 // The book's own words WITH their capitals. Built once and only when a cased search
 // misses, because a suggestion is worth nothing unless the book prints it in the case
 // it is being offered in: "Grey" helps a reader who typed "Gray" only if Grey is there
@@ -3040,6 +3052,18 @@ function searchDoubleday(query, rows, pages){
     strict.alt = casedAlternative(cased, pages);
     return strict;
   }
+  // The same in lower case: "ear" quoted is the word ear, not Earl or early.
+  const exact = asExact(query);
+  if (exact){
+    const strict = termSearch(exact, rows, pages, true, true);
+    // then the stories that only carry it inside a longer word (early, earring), below the fold
+    const had = new Set(strict.ranked.map(r => r.code));
+    const more = termSearch(exact, rows, pages).ranked.filter(r => !had.has(r.code));
+    more.forEach(r => { r.likelihood = "partial-word match"; r.worth = false; });
+    strict.ranked.push(...more);
+    if (more.length) strict.inner = exact;
+    return byTitle(strict, query, rows, pages);
+  }
   return byTitle(termSearch(query, rows, pages), query, rows, pages);
 }
 
@@ -3079,7 +3103,7 @@ function openingRow(code, rows, pages){
 // Terms the reader has switched off, for the query they were switched off in.
 let termsOff = {query: "", off: new Set()};
 
-function termSearch(query, rows, pages, cased){
+function termSearch(query, rows, pages, cased, blind){
   const asked = cased ? casedTerms(query) : queryTerms(query);
   // a sign brings the word for it and the word the sign, each a term of its own
   const added = [];
@@ -3119,7 +3143,7 @@ function termSearch(query, rows, pages, cased){
   // where what was typed is part of a word and no word itself -- any word it begins.
   const asked1 = terms.length === 1 ? terms[0] : null;
   const asTyped = chars ? chars : asked1 === null ? null : cased
-    ? new RegExp("\\b" + reEsc(asked1) + "\\b", "g")
+    ? new RegExp("\\b" + reEsc(asked1) + "\\b", blind ? "gi" : "g")
     : new RegExp("\\b(?:" + alternates(asked1, ownForms(asked1)) + ")\\b", "gi");
   // and the word exactly as typed, which outranks even its own forms
   const exactly = opens ? opens : asked1 === null || cased ? asTyped
@@ -3131,7 +3155,7 @@ function termSearch(query, rows, pages, cased){
   // "Gray" means, and nor is anything else the y-stem rule builds out of Gra-. Only a
   // plural or a possessive comes along, because Gray's is still Gray.
   const res = terms.map(t => isSign(t) ? new RegExp(reEscape(t), "g") : cased
-    ? new RegExp("\\b" + reEsc(t) + "(?:\u2019s|'s|s)?\\b", "g")
+    ? new RegExp("\\b" + reEsc(t) + "(?:\u2019s|'s|s)?\\b", blind ? "gi" : "g")
     : new RegExp("\\b" + grown(t) + "\\b" + (chars ? "|" + chars.source : within ? "|" + within.source : ""), "gi"));
   const owner = folioOwners(rows), limits = bounds(rows);
   const byStory = {}, spread = terms.map(() => 0);
@@ -3282,7 +3306,7 @@ function termSearch(query, rows, pages, cased){
   // and the same word with another ending: cooperation and cooperate, curious and curiosity
   const forms = !cased && !fragment && typed.length === 1 && !isSign(typed[0])
     ? otherForms(terms[0], asWord || res[0]).filter(w => !longer.includes(w)) : [];
-  return {query, terms, of, ranked, counts: spread, mended, off, added, cased: cased || undefined,
+  return {query, terms, of, ranked, counts: spread, mended, off, added, cased: blind ? undefined : cased || undefined, exact: blind || undefined,
           fragment: fragment || undefined, within: fragment ? wordsWith(fragment) : undefined,
           inner: inner || undefined,
           longer: longer.length ? longer : undefined, forms: forms.length ? forms : undefined};
@@ -4126,7 +4150,8 @@ function markRegex(only){
   }
   // a sign is no word, so it stands outside the word boundaries
   const signs = order.filter(([t]) => isSign(t)), words = order.filter(([t]) => !isSign(t));
-  const body = words.map(([t]) => "(" + grown(t) + ")").join("|");
+  // a word asked for exactly is marked as that, with no family or ending
+  const body = words.map(([t]) => "(" + (concept().exact ? reEscape(t) + "(?:\u2019s|'s|s)?" : grown(t)) + ")").join("|");
   // A fragment is marked as its own characters and no more, wherever they stand -- the
   // "rept" of crept as of reptile. Tried first, so it wins where a whole word would.
   const frag = concept().fragment
@@ -6207,7 +6232,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"100d4fa"}`,
+  const lines = [`App: ${document.title}, build ${"230fcde"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -8047,8 +8072,12 @@ function drawResults(){
     ? [`<span class="mended"><b>Variant match.</b> Not in ${EDITION}; these are places where`
        + ` another printing reads it, as recorded by Lester Moskowitz. His list is not`
        + ` a complete collation.</span>`] : [];
+  // a bare word also reaches the longer words that hold it; quoted, it is that word alone
+  const only = active.inner && !active.exact
+    ? [`<span class="mended">Only the word itself, not longer words that hold it:</span> `
+       + `<button class="respell" data-ask="&quot;${esc(active.inner)}&quot;">\u201C${esc(active.inner)}\u201D</button>`] : [];
   document.getElementById("rmend").innerHTML = holding ? ""
-    : (recase || variant.concat(part, also ? [also] : [], mended, lost, away)).join("<br>");
+    : (recase || variant.concat(part, also ? [also] : [], only, mended, lost, away)).join("<br>");
   // the phrase as typed, with the words the closest passage answered marked in it
   const closestRow = active.phrase && active.ranked.find(r => r.near !== undefined);
   const keyed = active.phrase
@@ -8338,7 +8367,6 @@ document.addEventListener("click", async event => {
 // the story, the Doubleday page or pages, and the printed lines on them. Only where the
 // press's lines are known -- the Doubleday's -- so Austen's reader leaves selections alone.
 
-const PLUG = "Check out http://Killer-Serials.com for the greatest Canon Search in the world.";
 
 const blockOf = node => {
   const el = node && (node.nodeType === 1 ? node : node.parentElement);
@@ -8393,7 +8421,7 @@ const escHTML = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g
 function passageHTML(range){
   const box = document.createElement("div");
   box.appendChild(range.cloneContents());
-  box.querySelectorAll(".pfolio, [aria-hidden='true']").forEach(el => el.remove());
+  box.querySelectorAll(".pfolio, .pbreak, .refold, .unfold, [aria-hidden='true']").forEach(el => el.remove());
   const out = [];
   (function walk(node){
     for (const c of node.childNodes){
@@ -8412,13 +8440,12 @@ function passageHTML(range){
 
 function citedHTML(passage, title, where, link){
   const credit = `font-family:${SANS};font-size:10pt;color:#555555;margin:0`;
+  // the page numbers carry the link to the passage, where there is one
+  const place = escHTML(where).replace(/^(pp?\. )([\d\u2013]+)/, (_, label, pages) => label + (link
+    ? `<a href="${escHTML(link)}" style="font-family:${SANS}">${pages}</a>` : pages));
   return `<div><p style="font-family:${SERIF};font-size:12pt;line-height:1.5;margin:0 0 8px">`
-    + `“${passage}”</p>`
-    + `<p style="${credit};margin-bottom:8px">— ${escHTML(title)}, Doubleday ${escHTML(where)}</p>`
-    + (link ? `<p style="${credit};margin-bottom:8px">Link to this passage: `
-      + `<a href="${escHTML(link)}" style="font-family:${SANS}">${escHTML(link)}</a></p>` : "")
-    + `<p style="${credit}">Check out <a href="http://Killer-Serials.com" style="font-family:${SANS}">`
-    + `http://Killer-Serials.com</a> for the greatest Canon Search in the world.</p></div>`;
+    + `\u201C${passage}\u201D</p>`
+    + `<p style="${credit}">\u2014 ${escHTML(title)}, Doubleday ${place}</p></div>`;
 }
 
 // The highlighted passage as a citation, or null where it is not a passage of the book:
@@ -8450,7 +8477,7 @@ function selectionCited(){
   // a couple of lines or more is worth sending the reader back to, not just quoting
   const link = text.split(" ").length >= LINK_LONG ? linkHere() : null;
   return {
-    text: `${asQuote(text)}\n— ${title}, Doubleday ${where}\n${link ? `Link to this passage: ${link}\n` : ""}\n${PLUG}`,
+    text: `${asQuote(text)}\n— ${title}, Doubleday ${where}${link ? ` <${link}>` : ""}`,
     html: citedHTML(passageHTML(range), title, where, link),
     said: text, where: `${story ? shortTitle(story.title) : picked} · ${where}`};
 }
@@ -8742,7 +8769,8 @@ async function openLinked(){
   if (!m) return false;
   const [, code, f1, f2, start, end, q] = m;
   first = false;                       // a link is a destination, not the page's first search
-  box.value = decodeURIComponent(q);
+  // no search in the link: the passage's own opening words stand in, as when none was entered
+  box.value = decodeURIComponent(q) || `"${decodeURIComponent(start)}"`;
   // a link made with no search entered asks for the passage's own opening words, quoted: not a question
   await search(box.value, {quiet: box.value === `"${decodeURIComponent(start)}"`});
   if (!active || !active.ranked.some(r => r.code === code)) return true;
@@ -10287,7 +10315,7 @@ const ROW_LABEL = {"exact": "exact match", "verbatim": "printed word for word",
   "closely related": "closely related", "story title": "the story you named",
   "best match": "best match", "strong": "strong match", "likely": "likely",
   "possible": "possible", "coincidental": "one word of it", "unranked": "found",
-  "most hits": "most hits", "carries it": "carries it", "a related word": "a related word", "within a word": "within a word"};
+  "most hits": "most hits", "carries it": "carries it", "a related word": "a related word", "within a word": "within a word", "partial-word match": "partial-word match"};
 
 const rowLabel = hit => hit.likelihood === CODE_LABEL ? "the story you named"
   : ROW_LABEL[hit.likelihood] || hit.likelihood;
@@ -10794,7 +10822,14 @@ function stage(query){
 // have nothing to recommend, so the tour stays away rather than pointing three arrows at
 // one bar. A story opened whole off the chart is not a match and does not count.
 function theOnlyOne(){
-  if (!active || active.ranked.length !== 1) return null;
+  if (!active) return null;
+  // Filtered to one book, the answer is in it: open the best story the filter leaves.
+  if (FILTER.book !== "all"){
+    const kept = active.ranked.filter(r => passesFilter(r.code));
+    const top = filterOrder(kept.filter(r => r.worth))[0] || filterOrder(kept)[0];
+    if (top) return top;
+  }
+  if (active.ranked.length !== 1) return null;
   const only = active.ranked[0];
   return only.mentions === 1 && !only.whole ? only : null;
 }
@@ -11028,7 +11063,8 @@ const text = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 // a phone is offered no examples, the placeholder's included
 if (HANDHELD) box.placeholder = DOUBLEDAY ? "\u{1F50D} Canonical search engine" : "\u{1F50D} Search for a word or a phrase";
 else if (EXAMPLES.placeholder) box.placeholder = EXAMPLES.placeholder;
-egs.innerHTML = (EXAMPLES.list || []).map(eg =>
+egs.innerHTML = (EXAMPLES.list && EXAMPLES.list.length ? `<li class="egshead" aria-hidden="true">Try out some example searches:</li>` : "")
+  + (EXAMPLES.list || []).map(eg =>
   `<li><button type="button" class="try" role="option" aria-selected="false"`
   + ` data-q="${attr(eg.q)}">${text(eg.q)}<i>${text(eg.note)}</i></button></li>`).join("");
 const opens = document.getElementById("opens");
