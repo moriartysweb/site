@@ -239,6 +239,8 @@ h2{font:600 19px/1.2 "Barlow Condensed",sans-serif;letter-spacing:.04em;text-tra
   background:none;border:0;padding:1px 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .resetstyle:hover,.resetstyle:focus-visible{color:var(--ink)}
 .rhead .resetstyle{align-self:flex-end;flex:0 0 auto}
+.fcase{display:inline-flex;align-items:center;gap:5px;font:500 12px "IBM Plex Sans",sans-serif;
+  color:var(--ink-soft);cursor:pointer;white-space:nowrap}
 .rail{height:min(40vh,176px);overflow-y:auto;overscroll-behavior:contain;
   border:1px solid var(--rule-soft);border-radius:8px;background:var(--rule-soft);padding:8px}
 .rail::-webkit-scrollbar{width:9px}
@@ -2099,6 +2101,7 @@ footer{margin-top:26px;padding-top:13px;border-top:1px solid var(--rule);color:v
   <span class="flab">Published</span>
   <input id="ffrom" class="fyear" type="number" inputmode="numeric" placeholder="from" min="1880" max="1930" aria-label="Published no earlier than">
   <input id="fto" class="fyear" type="number" inputmode="numeric" placeholder="to" min="1880" max="1930" aria-label="Published no later than">
+  <label class="fcase" title="Come matches Come and not come"><input type="checkbox" id="fcase"> Match case</label>
   <button type="button" id="fclear" class="fclear">clear</button>
   <span class="fsay" id="fsay"></span>
 </div>
@@ -2702,7 +2705,7 @@ try {
 // Which stories are on offer, in what order, and from what years. A filter narrows the
 // answer, never the search: the ranking is unchanged and fewer of its cards are shown.
 // Remembered on the reader's own machine, as the other settings are.
-const FILTER = {form: "all", book: "all", sort: "rank", from: null, to: null};
+const FILTER = {form: "all", book: "all", sort: "rank", from: null, to: null, matchCase: false};
 let filtersOn = false;
 try {
   const kept = JSON.parse(localStorage.getItem("filters") || "null");
@@ -2899,6 +2902,36 @@ function asExact(query){
   return inner && /^[a-z][a-z'-]*$/.test(inner) && casedTerms(inner).length === 1 ? inner : null;
 }
 
+// Strict capitals asked for with the filter's checkbox. A quoted word is that word and no
+// other, as a quoted capital always was; unquoted, the family and endings stay (see
+// `casePass`). A quoted run of words is still a phrase.
+const strictCase = () => filtersOn && FILTER.matchCase;
+function caseAsked(query){
+  if (!strictCase()) return null;
+  const m = QUOTED.exec(String(query));
+  if (!m) return null;
+  const text = m[1].trim();
+  return casedTerms(text).length === 1 ? text : null;
+}
+
+// Whether a word that matched is in the case that was typed: a capital asks for a capital,
+// lower case for lower case, and capitals throughout for capitals throughout. A match is
+// found case-blind first and kept or dropped here, so every ending and relation the search
+// knows still applies.
+const isUp = c => c !== c.toLowerCase();
+const casePass = (typed, word) => {
+  if (!typed || !word) return true;
+  if (typed.length > 1 && typed === typed.toUpperCase())
+    return word.slice(0, typed.length) === word.slice(0, typed.length).toUpperCase();
+  return isUp(typed[0]) === isUp(word[0]);
+};
+// the words as typed, by their lower-case selves
+const casing = query => {
+  const map = {};
+  (foldAsked(query).match(/[A-Za-z][A-Za-z'-]*/g) || []).forEach(w => { map[w.toLowerCase()] = map[w.toLowerCase()] || w; });
+  return map;
+};
+
 // The book's own words WITH their capitals. Built once and only when a cased search
 // misses, because a suggestion is worth nothing unless the book prints it in the case
 // it is being offered in: "Grey" helps a reader who typed "Gray" only if Grey is there
@@ -3082,7 +3115,7 @@ function searchDoubleday(query, rows, pages){
   // too short to be a phrase can be a word asked for as written.
   const quoted = phraseSearch(query, rows, pages);
   if (quoted) return byTitle(quoted, query, rows, pages);
-  const cased = asCased(query);
+  const cased = asCased(query) || caseAsked(query);
   if (cased){
     const strict = byTitle(termSearch(cased, rows, pages, true), query, rows, pages);
     // the word as asked for, so the page can say which reading answered
@@ -3107,7 +3140,7 @@ function searchDoubleday(query, rows, pages){
     if (more.length) strict.inner = exact;
     return byTitle(strict, query, rows, pages);
   }
-  return byTitle(termSearch(query, rows, pages), query, rows, pages);
+  return byTitle(termSearch(query, rows, pages, false, false, strictCase()), query, rows, pages);
 }
 
 // The story whose name was written, put at the head of the results. It may already be
@@ -3146,7 +3179,7 @@ function openingRow(code, rows, pages){
 // Terms the reader has switched off, for the query they were switched off in.
 let termsOff = {query: "", off: new Set()};
 
-function termSearch(query, rows, pages, cased, blind){
+function termSearch(query, rows, pages, cased, blind, sensitive){
   const asked = cased ? casedTerms(query) : queryTerms(query);
   // a sign brings the word for it and the word the sign, each a term of its own
   const added = [];
@@ -3172,6 +3205,18 @@ function termSearch(query, rows, pages, cased, blind){
   const mended = cased ? [] : typed.filter(t => !isSign(t)).map(t => [t, lenient(t)]).filter(([a, b]) => a !== b);
   const terms = cased ? typed : [...new Set(typed.map(settled))];
   const of = terms.length;
+  // strict case: the words as typed, and the matches kept only where they agree with them
+  const typedCase = sensitive && !cased ? casing(query) : null;
+  const count = (re, s, ti) => {
+    if (!typedCase) return (s.match(re) || []).length;
+    let n = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(s)) !== null){
+      if (casePass(typedCase[terms[ti]], m[0])) n++;
+      if (!m[0]) re.lastIndex++;
+    }
+    return n;
+  };
   // A word is also found inside longer ones -- the house of farmhouse -- as the weakest way
   // a story can carry it. Only in a one-word search, where it cannot crowd out the others.
   const inner = !cased && !fragment && of === 1 && !isSign(terms[0]) ? terms[0] : null;
@@ -3224,7 +3269,7 @@ function termSearch(query, rows, pages, cased, blind){
       const probe = unaccent(carry.length ? text + " " + carry.join(" ") : text);
       res.forEach((re, ti) => {
         re.lastIndex = 0;
-        const n = (probe.match(re) || []).length;
+        const n = count(re, probe, ti);
         if (!n) return;
         (found || (found = new Set())).add(ti);
         hits += n; spread[ti] += n;
@@ -3244,7 +3289,7 @@ function termSearch(query, rows, pages, cased, blind){
       const seen = unaccent(text);
       res.forEach((re, ti) => {
         re.lastIndex = 0;
-        const n = (seen.match(re) || []).length;
+        const n = count(re, seen, ti);
         if (!n) return;
         (found || (found = new Set())).add(ti);
         hits += n; spread[ti] += n;
@@ -3349,7 +3394,7 @@ function termSearch(query, rows, pages, cased, blind){
   // and the same word with another ending: cooperation and cooperate, curious and curiosity
   const forms = !cased && !fragment && typed.length === 1 && !isSign(typed[0])
     ? otherForms(terms[0], asWord || res[0]).filter(w => !longer.includes(w)) : [];
-  return {query, terms, of, ranked, counts: spread, mended, off, added, cased: blind ? undefined : cased || undefined, exact: blind || undefined,
+  return {query, terms, of, ranked, counts: spread, mended, off, added, cased: blind ? undefined : cased || undefined, exact: blind || undefined, casing: typedCase || undefined,
           fragment: fragment || undefined, within: fragment ? wordsWith(fragment) : undefined,
           inner: inner || undefined,
           longer: longer.length ? longer : undefined, forms: forms.length ? forms : undefined};
@@ -4382,6 +4427,8 @@ function hitSpans(text, at){
   while ((m = re.exec(seen)) !== null){
     const group = m.slice(1).findIndex(g => g !== undefined);
     const term = group < 0 ? 0 : of[group];
+    // strict case: a word of the wrong case is not what was asked for
+    if (concept().casing && !casePass(concept().casing[concept().terms[term]], m[0])) continue;
     // A term isolated away is still a term, so it keeps its range and wraps in nothing.
     // Dropping the range instead would let it pick up an underline, and the word the
     // reader just asked to stop seeing would come back wearing another coat.
@@ -6378,7 +6425,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"d2edd74"}`,
+  const lines = [`App: ${document.title}, build ${"7a2a22b"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -8139,6 +8186,8 @@ function showFilters(){
   set("fsort", FILTER.sort);
   set("ffrom", FILTER.from === null ? "" : FILTER.from);
   set("fto", FILTER.to === null ? "" : FILTER.to);
+  const fcase = document.getElementById("fcase");
+  if (fcase) fcase.checked = FILTER.matchCase;
   line.classList.toggle("narrowing", filtering());
 }
 
@@ -8148,6 +8197,15 @@ document.addEventListener("change", event => {
     filtersOn = box.checked;
     keepFilter();
     showFilters();
+    // strict case is part of the question, so showing or hiding the bar re-asks it
+    if (FILTER.matchCase) askAgain();
+    return;
+  }
+  if (event.target.closest("#fcase")){
+    FILTER.matchCase = event.target.checked;
+    keepFilter();
+    showFilters();
+    askAgain();
     return;
   }
   const field = event.target.closest("#fform, #fbook, #fsort, #ffrom, #fto");
@@ -8168,11 +8226,19 @@ document.addEventListener("click", event => {
   if (!event.target.closest("#fclear")) return;
   FILTER.form = "all"; FILTER.book = "all"; FILTER.sort = "rank";
   FILTER.from = null; FILTER.to = null;
+  const recase = FILTER.matchCase;
+  FILTER.matchCase = false;
   keepFilter();
   showFilters();
   drawResults();
   drawChart();
+  if (recase) askAgain();
 });
+
+// the same question again, now that how it is read has changed
+function askAgain(){
+  if (box.value.trim()) askNow(box.value);
+}
 
 // What a phone says before the first search; the first answer takes its place.
 const WELCOME = `<span class="welcome"><b>Welcome to the ${DOUBLEDAY ? "Canon Sleuth" : "Jane Austen Concordance"}</b>`
@@ -9708,8 +9774,11 @@ function pick(code){
     restFocus(panel);
     // the card or row that opened it was redrawn away, so the focus goes to the passage
     const now = document.activeElement;
-    if (!now || now === document.body || (was && !was.isConnected && !now.closest(".reading")))
+    // and where Enter opened it, out of the field, so the arrows step the matches
+    if (!now || now === document.body || (was && !was.isConnected && !now.closest(".reading"))
+        || (focusOnOpen && now === box))
       panel.querySelector(".rbody").focus({preventScroll: true});
+    focusOnOpen = false;
     // simple mode draws no chart, and the passage still settles on its hit
     if (!seg) return;
     const row = seg.closest(".row");
@@ -11069,8 +11138,14 @@ function askNow(query){
   search(query);
 }
 
+// Enter has opened the reading view, so the keys belong to it and not to the field: the
+// arrows must step the matches, not open the examples over the passage.
+let fromEnter = false, focusOnOpen = false;
+
 async function search(query, options){
   if (!query.trim()) return;
+  focusOnOpen = fromEnter;
+  fromEnter = false;
   // the last answer's arrows and its box are about the last question
   clearTour();
   const mine = ++outstanding;
@@ -11268,9 +11343,11 @@ form.addEventListener("submit", e => {
     ? document.querySelector(".cards button.card, .srows button.srow") : null;
   if (first){
     endSpotlight(false, true);
+    focusOnOpen = true;
     if (picked !== first.dataset.code) pick(first.dataset.code);
     return;
   }
+  fromEnter = true;
   askNow(box.value);
 });
 
@@ -11346,6 +11423,11 @@ box.addEventListener("input", () => {
 box.addEventListener("focus", () => { if (!box.value.trim()) showEgs(true); });
 box.addEventListener("keydown", event => {
   if (event.key === "ArrowDown" || event.key === "ArrowUp"){
+    // with a passage open the arrows walk its matches; the examples would open over it
+    if (egs.hidden && document.querySelector(".reading")){
+      stepMark(event.key === "ArrowDown" ? 1 : -1);
+      return event.preventDefault();
+    }
     if (egs.hidden) return showEgs(true), event.preventDefault();
     walk(event.key === "ArrowDown" ? 1 : -1);
     event.preventDefault();
