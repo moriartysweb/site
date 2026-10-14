@@ -420,6 +420,11 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 .cvx{position:absolute;top:8px;right:10px;width:30px;height:30px;border:0;border-radius:50%;
   background:none;color:var(--ink-soft);font-size:22px;line-height:1;cursor:pointer}
 .cvx:hover,.cvx:focus-visible{background:var(--rule-soft);color:var(--ink);outline:none}
+
+/* the error for a link to a page the book does not have */
+.pagenote{position:fixed;left:50%;bottom:28px;transform:translate(-50%,0);z-index:60;max-width:min(520px,90vw);
+  padding:10px 16px;border-radius:8px;background:var(--panel);color:var(--ink);border:1px solid var(--ink);
+  box-shadow:0 8px 24px rgba(10,14,30,.25);font:500 14px/1.4 "IBM Plex Sans",sans-serif}
 /* The selection popup: Copy and "Create a bookmark here", under the words that were selected.
    Above the copy toast (17) and the arrows (14). The buttons do not take a selection of their own. */
 .selpop{position:fixed;z-index:30;display:block;padding:6px;border-radius:9px;
@@ -4003,9 +4008,49 @@ function pageFor(n){
   if (FILTER.book === "all") return null;
   for (const code of Object.keys(STORY)){
     if ((BOOK[code] || {}).name !== FILTER.book) continue;
-    const s = STORY[code];
-    for (let f = s.page; f <= s.endPage; f++)
-      if ((PAGES[f] || {}).p === n) return {code, folio: f};
+    const at = pageIn(code, n);
+    if (at) return at;
+  }
+  return null;
+}
+
+// a volume's number as the editions label it: 2, "2" and "II" are the second
+const volNum = v => {
+  const s = String(v).toUpperCase();
+  if (/^\d+$/.test(s)) return +s;
+  const r = {I: 1, V: 5, X: 10};
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n += r[s[i]] < (r[s[i + 1]] || 0) ? -r[s[i]] : r[s[i]];
+  return n;
+};
+
+// How far each volume of an Austen novel runs, in the editions' printed pages, and the pages
+// before it: the book's absolute page is the printed page plus what came before it.
+function volumeSpan(code){
+  const s = STORY[code], vols = [];
+  for (let f = s.page; f <= s.endPage; f++){
+    const rec = PAGES[f] || {}, v = volNum(rec.v);
+    if (typeof rec.p !== "number") continue;
+    let last = vols[vols.length - 1];
+    if (!last || last.v !== v){ last = {v, max: 0, before: vols.reduce((a, x) => a + x.max, 0)}; vols.push(last); }
+    last.max = Math.max(last.max, rec.p);
+  }
+  return vols;
+}
+
+// The leaf of a page in one story that was named, which a link does. Austen's volumes each
+// begin again at one, so her page is the volume's own where one is given, and otherwise
+// the absolute page -- counted on through the volumes, as if the book were one.
+function pageIn(code, n, vol){
+  const s = STORY[code];
+  if (!s) return null;
+  if (DOUBLEDAY) return PAGES[n] && n >= s.page && n <= s.endPage ? {code, folio: n} : null;
+  const span = volumeSpan(code);
+  for (let f = s.page; f <= s.endPage; f++){
+    const rec = PAGES[f] || {};
+    if (typeof rec.p !== "number") continue;
+    const v = volNum(rec.v), before = (span.find(x => x.v === v) || {before: 0}).before;
+    if (vol ? v === vol && rec.p === n : before + rec.p === n) return {code, folio: f};
   }
   return null;
 }
@@ -6918,7 +6963,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"a2da9ae"}`,
+  const lines = [`App: ${document.title}, build ${"8406467"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -8842,7 +8887,7 @@ function drawResults(){
   // a number the book prints that is also a page of it
   const offer = active.offer
     ? [`<span class="mended">${esc(active.asked.trim())} is also a page number</span> `
-       + `<button class="respell elsewhere" data-code="${esc(active.offer.code)}" data-folio="${active.offer.folio}">`
+       + `<button class="respell elsewhere" data-page="1" data-code="${esc(active.offer.code)}" data-folio="${active.offer.folio}">`
        + `Jump to ${esc(leafName(active.offer.folio))}</button>`] : [];
   document.getElementById("rmend").innerHTML = holding ? ""
     : (recase || variant.concat(offer, part, also ? [also] : [], only, mended, lost, away)).join("<br>");
@@ -9439,6 +9484,55 @@ document.addEventListener("selectionchange", () => {
 // re-cut. A short passage is its words whole and has no closing words. The leading 2 is
 // the format, kept so that links made today go on opening if it ever grows.
 const LINK_FORM = /^#go=2\/([A-Za-z0-9_-]+)\/(\d+)\/(\d+)\/([^/]*)\/([^/]*)\/(.*)$/;
+// #221: a page of the Doubleday. #HOUNp221 names the story too; Austen's must, and #PRIDp400
+// is the novel's absolute page, counted on through the volumes. #PRIDv2p100 is the
+// printed page 100 of volume 2, which is also what the address bar shows after a jump.
+const LINK_PAGE = /^#(?:([A-Za-z0-9]{4})(?:v(\d+|[IVXivx]+))?p)?(\d+)$/;
+function markPageUrl(code, folio){
+  const rec = PAGES[folio] || {}, n = rec.p === undefined ? folio : rec.p;
+  const tail = DOUBLEDAY ? String(n) : code + (rec.v ? "v" + volNum(rec.v) : "") + "p" + n;
+  try { history.replaceState(null, "", location.pathname + location.search + "#" + tail); }
+  catch (e) { /* the address bar stays as it was */ }
+}
+// an error for a link that names a page the book does not have, said once and then gone
+function pageNotice(text){
+  const old = document.querySelector(".pagenote");
+  if (old) old.remove();
+  const note = document.createElement("div");
+  note.className = "pagenote";
+  note.setAttribute("role", "alert");
+  note.textContent = text;
+  document.body.appendChild(note);
+  setTimeout(() => note.remove(), 7000);
+}
+async function openPageLink(m){
+  if (!hydrated) await hydrate();
+  if (!hydrated) return false;
+  const code = m[1] && m[1].toUpperCase(), n = +m[3], vol = m[2] ? volNum(m[2]) : 0;
+  const at = code ? pageIn(code, n, vol) : DOUBLEDAY ? pageFor(n) : null;
+  if (!at){
+    const story = code && STORY[code];
+    const pages = Object.values(STORY).filter(s => s.page);
+    let say;
+    if (!DOUBLEDAY && !story) say = `Name the book for an Austen page, as in #PRIDp${n} or #PRIDv2p${n}.`;
+    else if (story && !DOUBLEDAY){
+      const span = volumeSpan(code), mine = vol && span.find(x => x.v === vol);
+      say = vol && !mine ? `${shortTitle(story.title)} has no volume ${vol}.`
+        : vol ? `There is no page ${n} in volume ${vol} of ${shortTitle(story.title)}, which has ${mine.max} pages.`
+        : `There is no page ${n} in ${shortTitle(story.title)}, which has ${span.reduce((a, x) => a + x.max, 0)} pages.`;
+    } else if (story) say = `There is no page ${n} in ${shortTitle(story.title)}.`;
+    else say = `There is no page ${n}: the Doubleday runs from page ${Math.min(...pages.map(s => s.page))}`
+      + ` to page ${Math.max(...pages.map(s => s.endPage))}.`;
+    pageNotice(say);
+    return false;
+  }
+  // taken through the search, which is how a jump by number already opens a page
+  first = false;
+  forceJump = {...at, n};
+  box.value = String(n);
+  await search(box.value);
+  return true;
+}
 const LINK_WORDS = 4;
 const LINK_LONG = 20;          // words in a selection before a copy carries its link
 const HIGHLIGHTS = typeof CSS !== "undefined" && Boolean(CSS.highlights) && typeof Highlight !== "undefined";
@@ -9535,6 +9629,8 @@ function clearLinked(){
 }
 
 async function openLinked(){
+  const page = LINK_PAGE.exec(location.hash);
+  if (page && await openPageLink(page)) return true;
   const m = LINK_FORM.exec(location.hash);
   if (!m) return false;
   const [, code, f1, f2, start, end, q] = m;
@@ -10109,6 +10205,7 @@ document.addEventListener("click", event => {
   const go = event.target.closest("button.elsewhere[data-code]");
   if (go){
     landOn(go.dataset.code, +go.dataset.folio, "");
+    if (go.dataset.page) markPageUrl(go.dataset.code, +go.dataset.folio);
     pick(go.dataset.code);
     return;
   }
@@ -10136,7 +10233,8 @@ document.addEventListener("click", event => {
   // the phrase chip is not one term of several; there is nothing to isolate it from
   if (key){ if (key.dataset.term !== undefined) isolate(+key.dataset.term); return; }
   const fix = event.target.closest(".respell");
-  if (fix){
+  // the page buttons are not suggestions: their own handler above takes them
+  if (fix && !fix.classList.contains("elsewhere")){
     // A suggestion that carries a whole query replaces the whole query: a recasing is
     // “Grey” with its quotation marks, not one term among several.
     let ask = fix.dataset.ask;
@@ -11634,6 +11732,8 @@ function askNow(query){
 // Enter has opened the reading view, so the keys belong to it and not to the field: the
 // arrows must step the matches, not open the examples over the passage.
 let fromEnter = false, focusOnOpen = false;
+// a page named by a link: go there whether or not the number is also printed in the text
+let forceJump = null;
 
 async function search(query, options){
   if (!query.trim()) return;
@@ -11648,7 +11748,8 @@ async function search(query, options){
   let found = await runSearch(query);
   if (mine !== outstanding) return;  // a newer question came while this one was running
   // a page number asked for alone: the book's own spelling of it, or the page itself
-  const go = hydrated && !found.offline ? pageJump(query, PAGES, found) : null;
+  const go = forceJump ? {jump: forceJump} : hydrated && !found.offline ? pageJump(query, PAGES, found) : null;
+  forceJump = null;
   if (go && go.query) found = await runSearch(go.query);
   // the words of a number spelled out are no answer to it, so what they found is set aside
   if (go && go.jump) found = {...found, ranked: [], counts: [], terms: [], of: 0, jumped: go.jump};
@@ -11685,6 +11786,7 @@ async function search(query, options){
   if (holding) return void (speakAt = setTimeout(speak, SPEAK));
   if (active.jumped){
     landOn(active.jumped.code, active.jumped.folio, "");
+    markPageUrl(active.jumped.code, active.jumped.folio);
     return void pick(active.jumped.code);
   }
   if (!active.ranked.length) return;
