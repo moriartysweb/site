@@ -3304,6 +3304,8 @@ function termSearch(query, rows, pages, cased, blind, sensitive){
     });
   }));
 
+  const joined = of > 1 && !cased && !typedCase
+    ? new RegExp("\\b" + terms.map(reEsc).join("[\\s\\u2014-]+") + "\\b", "i") : null;
   const ranked = [];
   Object.keys(byStory).forEach(code => {
     const story = rows.flatMap(r => r.stories).find(s => s.code === code);
@@ -3317,11 +3319,11 @@ function termSearch(query, rows, pages, cased, blind, sensitive){
     hits.forEach(p => { p.found.forEach(t => covered.add(t)); mentions += p.hits; });
     // a story printing what was typed is quoted where it prints it, not where a relation stands
     const says = p => asTyped ? (asTyped.lastIndex = 0, asTyped.test(p.seen) ? 1 : 0) : 0;
-    hits.forEach(p => { p.says = says(p); });
-    hits.sort((a, b) => b.says - a.says || b.found.size - a.found.size || b.hits - a.hits || a.folio - b.folio);
+    hits.forEach(p => { p.says = says(p); p.together = joined ? joined.test(p.seen) : false; });
+    hits.sort((a, b) => b.together - a.together || b.says - a.says || b.found.size - a.found.size || b.hits - a.hits || a.folio - b.folio);
     const top = hits[0];
     ranked.push({
-      code, covers: covered.size, mentions, clusters: hits.length,
+      code, covers: covered.size, mentions, clusters: hits.length, together: top.together,
       words: [...covered].map(i => terms[i]).sort(),
       literal: asTyped ? hits.some(p => (asTyped.lastIndex = 0, asTyped.test(p.seen))) : undefined,
       // the word or its family as words, rather than only inside longer ones
@@ -3360,6 +3362,13 @@ function termSearch(query, rows, pages, cased, blind, sensitive){
     // beside the story that carries the whole query, nothing else is likely: the rest
     // hold some of the words, which makes them possibilities, not near misses
     ranked.forEach(r => { if (r.likelihood === "likely") r.likelihood = "possible"; });
+  }
+  // Two words or more printed together, in the order typed, are the passage asked for, and
+  // they lead whatever else ranks above them: "great heart" is one sentence of Three
+  // Garridebs, and ninety scattered hits of each word are not an answer to it.
+  if (joined){
+    ranked.forEach(r => { if (r.together){ r.likelihood = "verbatim"; r.worth = true; } });
+    ranked.sort((a, b) => (b.together ? 1 : 0) - (a.together ? 1 : 0));   // stable
   }
   // One word, ranked by how often it is printed. Every story here answers the search,
   // so none is a leftover: the sort has already put the story that prints it most at
@@ -6470,7 +6479,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"de20e5f"}`,
+  const lines = [`App: ${document.title}, build ${"9b235d9"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
