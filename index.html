@@ -1295,6 +1295,19 @@ mark[data-item]{cursor:pointer}
 .bsjtitle{font-weight:600;color:inherit}
 a.bsjtitle{color:#e8c547}
 .bsjwhen{opacity:.7}
+/* The feedback card: bottom right, clear of the citation bar at the left, above the tour's box and its dimming. */
+.feedbackcard{position:fixed;right:26px;bottom:26px;z-index:70;box-sizing:border-box;width:min(340px,calc(100vw - 32px));
+  padding:12px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--panel);color:var(--ink);
+  box-shadow:0 6px 22px rgba(0,0,0,.35);font:13.5px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+.feedbackcard p{margin:0 0 10px}
+.feedbackcard p b{color:var(--flag)}   /* the same red as a fold's text, in each theme */
+.fbrow{display:flex;align-items:center;gap:10px}
+.feedbackcard .fbsend{padding:6px 12px;border:1px solid var(--hit-strong);border-radius:8px;color:var(--hit-strong);
+  text-decoration:none;font-weight:600}
+.feedbackcard .fbsend:hover{background:var(--hit-soft)}
+.fbclose{padding:6px 10px;border:0;background:transparent;color:var(--ink-faint);font:inherit;cursor:pointer;text-decoration:underline}
+.fbclose:hover{color:var(--ink)}
+@media (max-width:700px){.feedbackcard{left:12px;right:12px;bottom:12px;width:auto}}
 mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
 mark.k0,.termkey.k0{background:var(--k0)} mark.k1,.termkey.k1{background:var(--k1)} mark.k2,.termkey.k2{background:var(--k2)}
 mark.k3,.termkey.k3{background:var(--k3)} mark.k4,.termkey.k4{background:var(--k4)} mark.k5,.termkey.k5{background:var(--k5)}
@@ -6554,7 +6567,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"1d781b4"}`,
+  const lines = [`App: ${document.title}, build ${"6ea2727"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -6608,8 +6621,13 @@ document.addEventListener("click", event => {
       }
     } else {
       const r = link.getBoundingClientRect();
+      // hung from the button's right edge, but never off either side of the page; a small page
+      // gets it centred, at the width the page can spare
+      const width = Math.min(440, innerWidth - 16);
       pop.style.top = r.bottom + 6 + "px";
-      pop.style.right = Math.max(8, innerWidth - r.right) + "px";
+      pop.style.right = "auto";
+      pop.style.left = (innerWidth <= 560 ? (innerWidth - width) / 2
+                        : Math.max(8, Math.min(r.right - width, innerWidth - width - 8))) + "px";
       pop.style.maxHeight = Math.max(160, innerHeight - r.bottom - 22) + "px";
     }
     link.setAttribute("aria-expanded", String(opening));
@@ -8211,6 +8229,51 @@ document.addEventListener("keydown", event => {
   const from = event.target.closest && event.target.closest(".bsjphrase");
   if (from && (event.key === "Enter" || event.key === " ")){ event.preventDefault(); openBsj(from); }
 }, true);
+// ---- the feedback card -----------------------------------------------------------------------------
+// A small card near the foot of the page, for a new reader: found a problem, or have an idea? It comes up with
+// the first results, stacked above the "Where to start" box when that is showing, so it is seen at once and not
+// after the tour has been put away. Closing it is remembered; sending feedback is not -- the reader may have
+// more to say. The form itself is the one in the highlights panel and the About section, which stay.
+const FEEDBACK_CARD_KEY = "canonmap.feedbackcard.closed";
+let feedbackCard = null, feedbackStack = 0;
+
+const feedbackCardClosed = () => { try { return localStorage.getItem(FEEDBACK_CARD_KEY) === "yes"; } catch (e) { return false; } };
+const feedbackShown = el => el.getClientRects().length > 0;
+
+// Stacked with the tour's box, which keeps its own place: under it where the page has room (the first-run box
+// sits mid-page with an arrow pointing up), over it where it is down in the corner. Alone, the corner is the card's.
+function stackFeedback(){
+  if (!feedbackCard) return;
+  const box = [...document.querySelectorAll(".spotsay, .tourbox")].find(feedbackShown);
+  const s = feedbackCard.style;
+  if (!box){ s.top = s.bottom = s.right = ""; return; }
+  const r = box.getBoundingClientRect(), height = feedbackCard.offsetHeight;
+  s.right = Math.max(12, innerWidth - r.right) + "px";
+  if (innerHeight - r.bottom - 22 >= height){ s.top = r.bottom + 10 + "px"; s.bottom = "auto"; }
+  else { s.top = "auto"; s.bottom = Math.max(12, innerHeight - r.top + 10) + "px"; }
+}
+
+function offerFeedback(){
+  if (feedbackCard || feedbackCardClosed()) return;
+  feedbackCard = document.createElement("aside");
+  feedbackCard.className = "feedbackcard";
+  feedbackCard.setAttribute("aria-label", "Feedback");
+  // the same link as the panel's, so its click fills the form in (see feedbackContext)
+  feedbackCard.innerHTML = `<p><b>Found a problem, or have an idea?</b> Tell us. The form opens with what you were`
+    + ` doing already filled in.</p><div class="fbrow">`
+    + `<a class="hlfeedback fbsend" href="${FEEDBACK_FORM}" target="_blank" rel="noopener">Send feedback</a>`
+    + `<button type="button" class="fbclose">Close</button></div>`;
+  document.body.appendChild(feedbackCard);
+  stackFeedback();
+  feedbackStack = setInterval(stackFeedback, 400);     // the tour's box comes, goes and moves
+  feedbackCard.querySelector(".fbclose").addEventListener("click", () => {
+    try { localStorage.setItem(FEEDBACK_CARD_KEY, "yes"); } catch (e) { /* it comes back next visit */ }
+    clearInterval(feedbackStack);
+    feedbackCard.remove();
+    feedbackCard = null;
+  });
+}
+addEventListener("resize", stackFeedback);
 // What the folded stories are: for one word, those reached only by a related word.
 const weakerSaid = n => `${n} weaker \u2014 `
   + (active && active.of === 1 ? "related words only" : "one term only, or scattered");
@@ -8908,41 +8971,75 @@ const SERIF = "Georgia,'Times New Roman',serif";
 const SANS = "'Helvetica Neue',Helvetica,Arial,sans-serif";
 const escHTML = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// The selected passage as HTML: its words, and the italics the press set -- and nothing the
-// page drew on top of them, the marks, the notes, the margin's folio.
-function passageHTML(range){
+// What the page draws over the book's words, none of which is the book's: the margin's folio, the
+// notes ("Holmes the Magician"), the match numbers, the BSJ marks, the folds.
+const FURNITURE = ".pfolio, .pbreak, .refold, .unfold, .mnote, .turn, .hlnum, .bsjmark, [aria-hidden='true']";
+
+// The selected passage, a paragraph at a time: its words, and the italics the press set -- and nothing the
+// page drew on top of them. A heading, or a letter's dateline, is its own part and carries no indent.
+function passageParts(range){
   const box = document.createElement("div");
   box.appendChild(range.cloneContents());
-  box.querySelectorAll(".pfolio, .pbreak, .refold, .unfold, [aria-hidden='true']").forEach(el => el.remove());
-  const out = [];
-  (function walk(node){
-    for (const c of node.childNodes){
-      if (c.nodeType === 3) out.push(escHTML(stepIn(c.data)));
-      else if (c.nodeType === 1){
-        if (c.tagName === "I"){ out.push("<i>"); walk(c); out.push("</i>"); }
-        else {
-          walk(c);
-          if (/^(P|DIV|H\d|LI)$/.test(c.tagName)) out.push(" ");
+  box.querySelectorAll(FURNITURE).forEach(el => el.remove());
+  const htmlOf = el => {
+    const out = [];
+    (function walk(node){
+      for (const c of node.childNodes){
+        if (c.nodeType === 3) out.push(escHTML(stepIn(c.data)));
+        else if (c.nodeType === 1){
+          if (c.tagName === "I"){ out.push("<i>"); walk(c); out.push("</i>"); }
+          else {
+            walk(c);
+            if (/^(P|DIV|H\d|LI)$/.test(c.tagName)) out.push(" ");
+          }
         }
       }
-    }
-  })(box);
-  return out.join("").replace(/\s+/g, " ").trim();
+    })(el);
+    return out.join("").replace(/\s+/g, " ").trim();
+  };
+  const blocks = [...box.querySelectorAll("[data-f][data-b]")].filter(el => !el.parentElement.closest("[data-f][data-b]"));
+  return (blocks.length ? blocks : [box]).map(el => ({
+    head: el.tagName === "H4" || el.classList.contains("inset"),
+    text: el.textContent.replace(/\s+/g, " ").trim(),
+    html: htmlOf(el)})).filter(part => part.text);
 }
 
-function citedHTML(passage, title, where, link){
+// Several paragraphs stay several: a blank line between, the book's first-line indent as spaces (a tab
+// would not survive a paste into plain text), a heading alone. A selection that starts mid-paragraph does
+// not indent that first piece. The quotation marks open and shut once, around the whole.
+const INDENT = "    ";
+function quoteParts(parts, flat, startsMid){
+  const t = flat.trim();
+  const open = (t.match(/\u201C/g) || []).length, shut = (t.match(/\u201D/g) || []).length;
+  const texts = parts.map(part => stepIn(part.text));
+  const strip = (i, cut) => { texts[i] = cut(texts[i]); };
+  // a mark with no partner belongs to the speech around the selection, as in unpaired()
+  if (open > shut && t.startsWith("\u201C")) strip(0, x => x.replace(/^'\s*/, ""));
+  else if (shut > open && t.endsWith("\u201D")) strip(texts.length - 1, x => x.replace(/\s*'$/, ""));
+  texts[0] = `"${texts[0]}`;
+  texts[texts.length - 1] += '"';
+  return parts.map((part, i) => (part.head || (i === 0 && startsMid) ? "" : INDENT) + texts[i]).join("\n\n");
+}
+
+function citedHTML(parts, startsMid, title, where, link){
   const credit = `font-family:${SANS};font-size:10pt;color:#555555;margin:0`;
   // the page numbers carry the link to the passage, where there is one
   const place = escHTML(where).replace(/^(pp?\. )([\d\u2013]+)/, (_, label, pages) => label + (link
     ? `<a href="${escHTML(link)}" style="font-family:${SANS}">${pages}</a>` : pages));
-  return `<div><p style="font-family:${SERIF};font-size:12pt;line-height:1.5;margin:0 0 8px">`
-    + `\u201C${passage}\u201D</p>`
+  // one paragraph is set as it always was; several keep their breaks and the book's first-line indent
+  const many = parts.length > 1;
+  const body = parts.map((part, i) => {
+    const indent = many && !part.head && !(i === 0 && startsMid) ? ";text-indent:2em" : "";
+    return `<p style="font-family:${SERIF};font-size:12pt;line-height:1.5;margin:0 0 8px${indent}">`
+      + `${i === 0 ? "\u201C" : ""}${part.html}${i === parts.length - 1 ? "\u201D" : ""}</p>`;
+  }).join("");
+  return `<div>${body}`
     + `<p style="${credit}">\u2014 ${escHTML(title)}, Doubleday ${place}</p></div>`;
 }
 
 // The highlighted passage as a citation, or null where it is not a passage of the book:
 // nothing selected, a single word, or a selection that strays outside the story's text.
-function selectionCited(){
+function selectionCited(withLink){
   if (!Object.keys(LINES).length || !picked) return null;
   const sel = document.getSelection();
   if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
@@ -8959,18 +9056,20 @@ function selectionCited(){
     z = blocks[blocks.indexOf(z) - 1] || a;
     to = offsetIn(z, z, z.childNodes.length);
   }
-  const text = sel.toString().replace(/\s+/g, " ").trim();
+  const parts = passageParts(range);
+  const text = parts.map(part => part.text).join(" ");
   if (text.split(" ").length < 2) return null;
+  const startsMid = from > 0;
   const f1 = +a.dataset.f, f2 = +z.dataset.f;
   const where = whereCited(f1, lineAt(f1, a.dataset.b, from), f2,
                            lineAt(f2, z.dataset.b, Math.max(0, to - 1)));
   const story = STORY[picked];
   const title = story ? `${fullTitle(story.title)} (${picked})` : picked;
   // a couple of lines or more is worth sending the reader back to, not just quoting
-  const link = text.split(" ").length >= LINK_LONG ? linkHere() : null;
+  const link = withLink || text.split(" ").length >= LINK_LONG ? linkHere() : null;
   return {
-    text: `${asQuote(text)}\n— ${title}, Doubleday ${where}${link ? ` <${link}>` : ""}`,
-    html: citedHTML(passageHTML(range), title, where, link),
+    text: `${parts.length > 1 ? quoteParts(parts, text, startsMid) : asQuote(text)}\n— ${title}, Doubleday ${where}${link ? ` <${link}>` : ""}`,
+    html: citedHTML(parts, startsMid, title, where, link),
     said: text, where: `${story ? shortTitle(story.title) : picked} · ${where}`};
 }
 
@@ -9245,7 +9344,8 @@ function spotHere(){
   let a, z, text;
   if (sel && !sel.isCollapsed && sel.rangeCount && body.contains(sel.anchorNode)){
     const r = sel.getRangeAt(0);
-    a = blockOf(r.startContainer); z = blockOf(r.endContainer); text = sel.toString();
+    a = blockOf(r.startContainer); z = blockOf(r.endContainer);
+    text = passageParts(r).map(part => part.text).join(" ");     // the book's words, as the copy has them
   } else {
     const mid = body.getBoundingClientRect().top + body.clientHeight / 2;
     a = z = [...body.querySelectorAll("[data-f][data-b]")].find(p => p.getBoundingClientRect().bottom >= mid);
@@ -9341,7 +9441,7 @@ document.addEventListener("click", async event => {
 // Select some of the passage and a small popup opens under it: Copy, where the automatic copy
 // would not have (it is off, or the selection is one word), and a bookmark that asks for an
 // optional tag. Bookmarks are the account's job (/account.js); without it there is only Copy.
-let selpop = null, selBusy = false, selTimer = 0, selNow = null, markDraft = null, mouseDown = false;
+let selpop = null, selBusy = false, selTimer = 0, selNow = null, markDraft = null, mouseDown = false, menuMode = false;
 
 const canBookmark = () => Boolean(window.Account) && document.documentElement.classList.contains("has-account");
 
@@ -9363,6 +9463,7 @@ function buildSelpop(){
   selpop.setAttribute("role", "toolbar");
   selpop.setAttribute("aria-label", "Selection actions");
   selpop.innerHTML = `<div class="spmain"><button type="button" class="spcopy">Copy</button>`
+    + `<button type="button" class="splink">Copy with link</button>`
     + `<button type="button" class="spmark">Create a bookmark here</button></div>`
     + `<form class="sptag" hidden><label>Optional tag<span class="spbox">`
     + `<input class="sptext" name="tag" type="text" maxlength="40" autocomplete="off" spellcheck="false">`
@@ -9380,8 +9481,10 @@ function buildSelpop(){
 const tagBox = () => selpop.querySelector(".sptext");
 const sayPop = t => { selpop.querySelector(".spsay").textContent = t; };
 
-function showSelpop(info){
-  const canCopy = !hl.autocopy || info.words === 1, canMark = canBookmark();
+function showSelpop(info, menu){
+  // opened by a right-click it is a menu: always Copy, and the link the automatic copy leaves out
+  menuMode = Boolean(menu);
+  const canCopy = menuMode || !hl.autocopy || info.words === 1, canMark = canBookmark();
   if (!canCopy && !canMark) return hideSelpop();
   if (!selpop) buildSelpop();
   selNow = info;
@@ -9390,6 +9493,9 @@ function showSelpop(info){
   const copy = selpop.querySelector(".spcopy");
   copy.hidden = !canCopy;
   copy.textContent = "Copy";
+  const link = selpop.querySelector(".splink");
+  link.hidden = !menuMode;
+  link.textContent = "Copy with link";
   selpop.querySelector(".spmark").hidden = !canMark;
   selpop.hidden = false;
   const r = info.rect, w = selpop.offsetWidth, h = selpop.offsetHeight;
@@ -9399,13 +9505,14 @@ function showSelpop(info){
 }
 
 function hideSelpop(){
+  menuMode = false;
   if (selpop) selpop.hidden = true;
   selBusy = false;
   markDraft = null;
 }
 
 function syncSelpop(){
-  if (selBusy || mouseDown) return;
+  if (selBusy || mouseDown || menuMode) return;
   const info = selectionNow();
   if (info) showSelpop(info); else hideSelpop();
 }
@@ -9428,20 +9535,22 @@ async function onSelpopClick(event){
   const b = event.target.closest("button");
   if (!b) return;
   if (b.classList.contains("spcopy")) return copyNow(b);
+  if (b.classList.contains("splink")) return copyNow(b, true);
   if (b.classList.contains("spmark")) return startMark();
   if (b.classList.contains("spclear")){ tagBox().value = ""; tagBox().focus(); return; }
   if (b.classList.contains("spcancel")) return hideSelpop();
 }
 
-async function copyNow(btn){
-  const cited = selectionCited();
+async function copyNow(btn, withLink){
+  const cited = selectionCited(withLink);
   let ok;
   if (cited){
     ok = await writeClipboard(cited);
     if (!ok) return copyRefused(cited);
     showCopied(cited, "copied");
   } else {
-    const plain = {text: selNow.text, html: escHTML(selNow.text)};
+    const url = withLink ? linkHere() : null;
+    const plain = {text: selNow.text + (url ? ` <${url}>` : ""), html: escHTML(selNow.text)};
     try { await navigator.clipboard.writeText(plain.text); ok = true; } catch (e) { ok = legacyCopy(plain); }
   }
   btn.textContent = ok ? "Copied" : "Press Ctrl/Cmd+C";
@@ -9472,6 +9581,17 @@ async function saveMark(){
   else if (res.signedOut){ hideSelpop(); window.Account.prompt("Sign in to bookmark this passage."); }
   else sayPop(res.error);
 }
+
+// A right-click on the selection opens the same popup at the pointer instead of the browser's menu:
+// Copy, Copy with link (the automatic copy carries none under 20 words), and the bookmark.
+document.addEventListener("contextmenu", event => {
+  const info = selectionNow();
+  if (!info || !document.getSelection().containsNode(event.target, true)) return;
+  event.preventDefault();
+  mouseDown = false;
+  const at = {left: event.clientX, right: event.clientX, top: event.clientY, bottom: event.clientY};
+  showSelpop({...info, rect: at}, true);
+});
 // ---- Get lost in the stories ---------------------------------------------------------------
 // A random note, of any kind, opened like a step of the arrows; offered by the tour (see tour.js). About one click in fifty goes to
 // the other canon instead; that page picks the note itself, since only it knows its own.
@@ -10024,6 +10144,7 @@ function pick(code){
   const scroller = document.querySelector(".scroller");
   scroller.classList.toggle("picked", Boolean(code));
   drawResults(); drawChart();
+  if (code) offerFeedback();
   if (!code){
     // however the passage was shut -- Escape, the close button, a click outside
     backToSearch(was);
@@ -11455,6 +11576,7 @@ async function search(query, options){
   revealed = new Set();
   document.querySelector(".scroller").classList.remove("picked");
   drawResults(); drawChart();
+  offerFeedback();
   document.querySelectorAll(".tourfold, .tourreset").forEach(el => el.remove());
   // a new search is a new question, so the box comes back with it -- unless the
   // reader has said not this session, in which case the mark is there to ask again
@@ -11798,7 +11920,7 @@ window.keepPlace = () => {
 
 // "Latest update Oct 18 at 11:49 pm", in the reader's own time zone: the commit this build came from.
 (() => {
-  const when = new Date("2026-10-19T00:19:23-05:00"), el = document.getElementById("updated");
+  const when = new Date("2026-10-19T10:32:17-05:00"), el = document.getElementById("updated");
   if (!el || isNaN(when)) return;
   const day = when.toLocaleDateString("en-US", {month: "short", day: "numeric"});
   const time = when.toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit"}).replace(/\s/g, " ").toLowerCase();
