@@ -1276,6 +1276,25 @@ mark[data-item]{cursor:pointer}
   cursor:pointer;opacity:0;transition:opacity .15s}
 .pgbadge:hover .pgx,.pgx:focus-visible{opacity:1}
 @media (prefers-reduced-motion:reduce){.pgbadge{transition:none}}
+/* Baker Street Journal articles: a yellow dotted underline and a small book. */
+.bsjphrase{border-bottom:2px dotted #d4a017;cursor:pointer}
+.bsjmark{display:inline-flex;align-items:center;gap:3px;margin-left:3px;padding:0 5px;border:1px solid #d4a017;border-radius:9px;
+  background:transparent;color:#d4a017;font:600 10px/1.5 system-ui,sans-serif;letter-spacing:.04em;vertical-align:middle;cursor:pointer}
+.bsjmark:hover,.bsjmark[aria-expanded="true"]{background:#d4a017;color:#1b1b1b}
+.bsjstory{font-size:12px;margin-left:10px;vertical-align:middle}
+.bsjicon{flex:none}
+.bsjlink{color:#d4a017;text-decoration:underline}
+.bsjpop{position:absolute;z-index:60;max-height:60vh;overflow:auto;padding:10px 12px;border:1px solid #d4a017;border-radius:8px;
+  background:#1d2029;color:#e8e6df;font:13px/1.45 system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.bsjpop[hidden]{display:none}
+.bsjpop ul{margin:0;padding:0;list-style:none}
+.bsjpop{user-select:text}
+.bsjpop li{padding:5px 0;border-top:1px solid rgba(255,255,255,.18)}
+.bsjpop li:first-child{border-top:0}
+.bsjpop .copy{float:right;margin:0 0 0 8px;padding:2px 6px;font-size:12px;line-height:1.25}
+.bsjtitle{font-weight:600;color:inherit}
+a.bsjtitle{color:#e8c547}
+.bsjwhen{opacity:.7}
 mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
 mark.k0,.termkey.k0{background:var(--k0)} mark.k1,.termkey.k1{background:var(--k1)} mark.k2,.termkey.k2{background:var(--k2)}
 mark.k3,.termkey.k3{background:var(--k3)} mark.k4,.termkey.k4{background:var(--k4)} mark.k5,.termkey.k5{background:var(--k5)}
@@ -3133,6 +3152,11 @@ const ITALICS = DATA.italics || {};
 const LINES = DATA.lines || {};
 // Hand-written notes pinned to the text: a summary of each story and book, the lines worth
 // marking as legendary, the scenes as spectacular -- see build_story_notes.py.
+// Baker Street Journal articles that quote or are about the Canon -- see build_bsj_anchors.py.
+const BSJ = {articles: {}, lines: {}, about: {}};   // filled by loadBsj, once the reader wants it
+// an open book, in the colour of the text it sits in
+const BSJ_ICON = `<svg class="bsjicon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">`
+  + `<path fill="currentColor" d="M1 3h5a2 2 0 0 1 2 2v9a2 2 0 0 0-2-2H1zM15 3h-5a2 2 0 0 0-2 2v9a2 2 0 0 1 2-2h5z"/></svg>`;
 const STORY_NOTES = Object.assign({books: {}, stories: {}, items: [], lines: {}, scenes: {}, screens: {}, magic: {}, labels: {}},
                                   DATA.storyNotes || {});
 // an opening's run of small capitals, folio -> block -> [start, length] (fix_dd_smallcaps.py)
@@ -3166,6 +3190,7 @@ const anyVariants = () => Object.keys(COLLATED).length || Object.keys(BOOK_TYPOS
 // three for other printings start from what the Variants control last said, so a reader
 // who had variants on still sees them; a change to any of them keeps the control honest.
 const hl = {hits: true, find: true, numbers: true, autocopy: true, legends: true, favorites: true, magic: true, pagebadge: true,
+            bsj: false, ebsj: false,
             printings: variantsOn, insertions: variantsOn, typos: variantsOn};
 try { Object.assign(hl, JSON.parse(localStorage.getItem("highlights") || "{}")); }
 catch (e) { /* a private window, or storage refused: the defaults stand */ }
@@ -3353,6 +3378,7 @@ function hydrate(){
     await fromDatabase();
     if (!Object.keys(PAGES).length) await fromFile();
     hydrated = Object.keys(PAGES).length > 0;
+    if (hydrated && hl.bsj) loadBsj();
     return hydrated;
   })());
 }
@@ -4822,7 +4848,7 @@ const printed = (text, at) => {
     NUMLINE.test(line) ? `<span class="${/^Part/i.test(line) ? "partnum" : "chapnum"}">${marked({text: line})}</span>`
     : i < lines.length - 1 ? `<span class="parttitle">${marked({text: line})}</span>` : marked({text: line})).join("");
   return inset ? `<p class="inset"${from}>${num}${marked({text})}</p>`
-               : `<h4 class="printed${named}${part}${chapter}"${from}>${num}${heading}</h4>`;
+               : `<h4 class="printed${named}${part}${chapter}"${from}>${num}${heading}${named ? bsjBadge(at.code) : ""}</h4>`;
 };
 
 // What the reader is looking for in this passage alone: the entry exactly as typed,
@@ -5225,6 +5251,42 @@ function legendRange(text, at, start0, len, words){
   return b > a && b <= text.length ? [a, b] : null;
 }
 
+// The articles of the Baker Street Journal that quote a stretch of the Canon: the phrase is
+// underlined and a small book beside it opens the list. Placed like the legendary lines,
+// carried across the mending, and cut around anything already marked so a search hit
+// inside the phrase keeps its own colour.
+function bsjSpans(text, taken, at){
+  const spans = [];
+  if (!at || !hl.bsj) return spans;
+  const printed = (((PAGES[at.f] || {}).b || [])[at.bi] || [])[1];
+  ((BSJ.lines[at.f] || {})[at.bi] || []).forEach(([start0, len, ids], k) => {
+    if (typeof printed !== "string") return;
+    const range = legendRange(text, at, start0, len, printed.substr(start0, len));
+    if (!range) return;
+    let cut = [range];
+    for (const s of [...taken, ...spans]){
+      cut = cut.flatMap(([a, b]) => {
+        if (s.at >= b || s.at + s.len <= a) return [[a, b]];
+        return [s.at > a ? [a, s.at] : null, s.at + s.len < b ? [s.at + s.len, b] : null].filter(Boolean);
+      });
+    }
+    const key = `${at.f}:${at.bi}:${k}`;
+    cut.forEach(([a, b], i) => spans.push({at: a, len: b - a,
+      open: `<span class="bsjphrase" role="button" tabindex="0" data-bsj="${key}" aria-expanded="false">`,
+      shut: "</span>" + (i < cut.length - 1 ? ""
+        : `<button type="button" class="bsjmark" data-bsj="${key}" aria-expanded="false" aria-label="Baker Street Journal articles">${BSJ_ICON}BSJ</button>`)}));
+  });
+  return spans;
+}
+
+// The badge beside a story's name, with how many Journal articles are about it
+function bsjBadge(code){
+  const n = ((BSJ.about || {})[code] || []).length;
+  return n && hl.bsj
+    ? ` <button type="button" class="bsjmark bsjstory" data-bsj="story:${code}" aria-expanded="false">`
+      + `${BSJ_ICON}BSJ \u00B7 ${n} article${n === 1 ? "" : "s"}</button>` : "";
+}
+
 function legendSpans(text, taken, at){
   const spans = [];
   if (!at) return spans;
@@ -5311,6 +5373,7 @@ function markSpans(passage){
     spans.push(...variantSpans(text, spans, passage.at));
     spans.push(...italicSpans(text, spans, passage.at));
     spans.push(...legendSpans(text, spans, passage.at));
+    spans.push(...bsjSpans(text, spans, passage.at));
   }
   spans.push(...figureSpans(text, passage.at));
   // an opening's first words, in small capitals as the book sets them; laid last, so it
@@ -5547,7 +5610,7 @@ function storyBlocks(hit){
       const before = own && bi < own[0] && f === story.page && leafing === "authentic";
       if (own && (bi < own[0] || bi >= own[1]) && !before) return;
       if (leaked(kind, text, page.b, f, story)) return;
-      items.push({f, bi, kind, text: mend(f, bi, text), before});
+      items.push({f, bi, kind, text: mend(f, bi, text), before, code: hit.code});
     });
   }
   if (!items.length) return null;
@@ -6914,6 +6977,11 @@ function highlightRows(){
   if (STORY_NOTES.items.some(x => x.kind === "magic")) rows.push(
     ["magic", STORY_NOTES.labels.magic, `<span class="legendary">\u2726 magic</span>`,
      "Scenes where Holmes reads a mind or a fact from nothing, and is asked how"]);
+  if (DATA.bsjFile) rows.push(
+    ["bsj", "BSJ articles", `<span class="bsjphrase">a quoted phrase</span><span class="bsjmark">${BSJ_ICON}BSJ</span>`,
+     "Baker Street Journal articles about a story or quoting a passage"],
+    ["ebsj", "eBSJ links", `<span class="bsjlink">ebsj://</span>`,
+     "Link each article to the eBSJ app on your Mac"]);
   rows.push(["pagebadge", "Page number", `<span class="pgsample">p. 712</span>`,
              "A page number in the corner that follows your reading"]);
   // simple mode (a phone) has no rare words or other printings to mark
@@ -6979,7 +7047,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"ae11899"}`,
+  const lines = [`App: ${document.title}, build ${"6146886"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -7056,6 +7124,7 @@ document.addEventListener("change", event => {
   }
   hl[box.dataset.hl] = box.checked;
   saveHighlights();
+  if (box.dataset.hl === "bsj" && box.checked) loadBsj();
   if (box.dataset.hl === "pagebadge"){
     document.querySelectorAll(".reading").forEach(p => syncBadge(p));
     return;
@@ -8550,6 +8619,91 @@ document.addEventListener("change", event => {
   if (!event.target.classList || !event.target.classList.contains("rhbox")) return;
   try { localStorage.setItem(ROTATE_KEY, event.target.checked ? "off" : "on"); } catch (e) { /* not kept */ }
 });
+// ---- Baker Street Journal articles: the list a badge or an underlined phrase opens ---------
+// The articles come from build_bsj_anchors.py. A row is the article's title and author, with its
+// date, volume and page; with "eBSJ links" on, the title opens the eBSJ app on the reader's Mac.
+
+// Fetched when the reader first wants it -- the switch starts off -- and kept by the offline app
+// from install, so it is there without a connection too. Redraws the open passage when it lands.
+let bsjLoading = null;
+function loadBsj(){
+  if (!DATA.bsjFile) return Promise.resolve(false);
+  return bsjLoading || (bsjLoading = (async () => {
+    try {
+      const res = await fetch(DATA.bsjFile, {cache: "force-cache"});
+      if (!res.ok) throw new Error("no file");
+      Object.assign(BSJ, await res.json());
+      document.querySelectorAll(".reading").forEach(panel => reflow(panel, () => {}));
+      return true;
+    } catch (e) { bsjLoading = null; return false; }     // asked again the next time it is wanted
+  })());
+}
+
+const BSJ_POP = document.createElement("div");
+BSJ_POP.className = "bsjpop";
+BSJ_POP.setAttribute("role", "dialog");
+BSJ_POP.hidden = true;
+document.body.appendChild(BSJ_POP);
+let bsjFrom = null;
+
+function bsjIdsFor(key){
+  if (key.startsWith("story:")) return (BSJ.about || {})[key.slice(6)] || [];
+  const [f, bi, k] = key.split(":");
+  const span = ((BSJ.lines[f] || {})[bi] || [])[+k];
+  return span ? span[2] : [];
+}
+
+// Author, "Title," Baker Street Journal 22 (March 1972): 4.
+const bsjCitation = ([title, author, date, vol, page]) =>
+  `${author ? author + ", " : ""}\u201C${title},\u201D Baker Street Journal ${vol} (${date}): ${page}.`;
+
+function bsjRows(ids){
+  return ids.map(id => BSJ.articles[id]).filter(Boolean)
+    .sort((a, b) => a[3] - b[3] || a[4] - b[4])
+    .map(row => {
+      const [title, author, date, vol, page, link] = row;
+      const name = esc(title);
+      const head = hl.ebsj && link ? `<a class="bsjtitle" href="${esc(link)}">${name}</a>` : `<span class="bsjtitle">${name}</span>`;
+      return `<li><button type="button" class="copy" data-text="${esc(bsjCitation(row))}" title="Copy citation"`
+        + ` aria-label="Copy citation">\uD83D\uDCCB</button>${head}${author ? ` — ${esc(author)}` : ""}<br>`
+        + `<span class="bsjwhen">${esc(date)} · vol. ${vol}, p. ${page}</span></li>`;
+    }).join("");
+}
+
+function closeBsj(){
+  if (BSJ_POP.hidden) return false;
+  BSJ_POP.hidden = true;
+  if (bsjFrom) bsjFrom.setAttribute("aria-expanded", "false");
+  bsjFrom = null;
+  return true;
+}
+
+function openBsj(from){
+  if (bsjFrom === from) return void closeBsj();
+  closeBsj();
+  const ids = bsjIdsFor(from.dataset.bsj);
+  if (!ids.length) return;
+  BSJ_POP.innerHTML = `<ul>${bsjRows(ids)}</ul>`;
+  BSJ_POP.hidden = false;
+  from.setAttribute("aria-expanded", "true");
+  bsjFrom = from;
+  const r = from.getBoundingClientRect();
+  const width = Math.min(380, innerWidth - 24);
+  BSJ_POP.style.width = width + "px";
+  BSJ_POP.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + innerWidth - width - 12)) + "px";
+  BSJ_POP.style.top = (r.bottom + scrollY + 6) + "px";
+}
+
+document.addEventListener("click", event => {
+  const from = event.target.closest && event.target.closest("[data-bsj]");
+  if (from) return void openBsj(from);
+  if (!event.target.closest(".bsjpop")) closeBsj();
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && closeBsj()) return void event.stopPropagation();
+  const from = event.target.closest && event.target.closest(".bsjphrase");
+  if (from && (event.key === "Enter" || event.key === " ")){ event.preventDefault(); openBsj(from); }
+}, true);
 // What the folded stories are: for one word, those reached only by a related word.
 const weakerSaid = n => `${n} weaker \u2014 `
   + (active && active.of === 1 ? "related words only" : "one term only, or scattered");
@@ -12104,7 +12258,7 @@ window.accountApp = {
     "rotate-hint": v => v === "on" ? null : v,
     highlights: (v, all) => {
       try {
-        const defaults = {hits: true, find: true, numbers: true, autocopy: true, legends: true, favorites: true, magic: true, pagebadge: true};
+        const defaults = {hits: true, find: true, numbers: true, autocopy: true, legends: true, favorites: true, magic: true, pagebadge: true, bsj: false, ebsj: false};
         const printings = all.variants === "yes";
         const kept = Object.entries(JSON.parse(v)).filter(([k, x]) =>
           k in defaults ? x !== defaults[k] : !["printings", "insertions", "typos"].includes(k) || x !== printings);
@@ -12137,7 +12291,7 @@ window.keepPlace = () => {
 
 // "Latest update Oct 18 at 11:49 pm", in the reader's own time zone: the commit this build came from.
 (() => {
-  const when = new Date("2026-10-19T00:00:51-05:00"), el = document.getElementById("updated");
+  const when = new Date("2026-10-19T00:19:23-05:00"), el = document.getElementById("updated");
   if (!el || isNaN(when)) return;
   const day = when.toLocaleDateString("en-US", {month: "short", day: "numeric"});
   const time = when.toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit"}).replace(/\s/g, " ").toLowerCase();
