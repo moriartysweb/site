@@ -2004,6 +2004,8 @@ footer{margin-top:26px;padding-top:13px;border-top:1px solid var(--rule);color:v
 @media (max-width:900px){
   .about{max-width:100%; margin-top:28px; padding-top:20px; font-size:14.5px}
 }
+
+.updated{display:inline-block;margin-top:8px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
 </style>
 <div class="scroller"><div class="wrap">
 <header>
@@ -2140,7 +2142,7 @@ footer{margin-top:26px;padding-top:13px;border-top:1px solid var(--rule);color:v
 <svg id="arrows" aria-hidden="true"></svg>
 <footer>Bar width is word count on one scale across all rows. Hairlines inside the novels mark chapter
 openings, the heavier rule a Part. The shaded band rises from the foot of each bar in proportion to how many of your terms appear anywhere in a
-story; the bright line marks its best page. The passage opens wide enough to hold every occurrence the story carries, up to seventeen pages. Text and page numbers are the Doubleday <i>Complete Sherlock Holmes</i>, read from the archive.org scans of both volumes &mdash; 2,022 scanner slips corrected by aligning each story against the sherlock-holm.es text, where the shapes a scanner confuses explain the difference. Where the two editions simply differ &mdash; grey for gray, note-book for notebook &mdash; the scan stands, and the uncorrected scan is kept beside it as its own version. Running heads are set as the book sets them.</footer>
+story; the bright line marks its best page. The passage opens wide enough to hold every occurrence the story carries, up to seventeen pages. Text and page numbers are the Doubleday <i>Complete Sherlock Holmes</i>, read from the archive.org scans of both volumes &mdash; 2,022 scanner slips corrected by aligning each story against the sherlock-holm.es text, where the shapes a scanner confuses explain the difference. Where the two editions simply differ &mdash; grey for gray, note-book for notebook &mdash; the scan stands, and the uncorrected scan is kept beside it as its own version. Running heads are set as the book sets them.<br><span id="updated" class="updated"></span></footer>
 
 <!-- Where the text came from and what was done to it. A page that cites a leaf owes
      the reader the means to check the citation against a physical copy. -->
@@ -2719,6 +2721,9 @@ try {
     filtersOn = !!kept.on;
   }
 } catch (e) { /* a private window, or storage refused: everything is shown */ }
+// Both readers keep their settings in one store, so a book chosen in the other reader is
+// not one this reader has: ignored, rather than hiding every story here.
+if (FILTER.book !== "all" && !Object.values(BOOK).some(b => b.name === FILTER.book)) FILTER.book = "all";
 const keepFilter = () => {
   try { localStorage.setItem("filters", JSON.stringify({...FILTER, on: filtersOn})); }
   catch (e) { /* not kept */ }
@@ -2735,9 +2740,11 @@ const pubYear = code => {
   return found ? +found[0] : null;
 };
 
+// The values are remembered, but they only narrow anything while the Filters switch is on: a
+// filter left set behind a switch turned off hid stories with nothing to say why.
 const passesFilter = code => {
   const story = STORY[code];
-  if (!story) return true;
+  if (!story || !filtersOn) return true;
   if (FILTER.form === "short" && (isNovel(code) || isFront(code))) return false;
   if (FILTER.form === "novel" && (!isNovel(code) || isFront(code))) return false;
   if (FILTER.book !== "all" && (BOOK[code] || {}).name !== FILTER.book) return false;
@@ -2752,7 +2759,7 @@ const passesFilter = code => {
 };
 
 const filterOrder = hits => {
-  if (FILTER.sort === "rank") return hits;
+  if (!filtersOn || FILTER.sort === "rank") return hits;
   const by = {
     code:  (a, b) => a.code.localeCompare(b.code),
     title: (a, b) => shortTitle((STORY[a.code] || {}).title || a.code)
@@ -2764,8 +2771,8 @@ const filterOrder = hits => {
   return by ? hits.slice().sort(by) : hits;
 };
 
-const filtering = () => FILTER.form !== "all" || FILTER.book !== "all"
-                     || FILTER.from !== null || FILTER.to !== null;
+const filtering = () => filtersOn && (FILTER.form !== "all" || FILTER.book !== "all"
+                     || FILTER.from !== null || FILTER.to !== null);
 
 let active = null;
 const concept = () => active;
@@ -3521,7 +3528,7 @@ function pageFor(n){
     const codes = (PAGES[n] && folioOwners(DATA.rows)[n]) || [];
     return codes.length ? {code: codes[0], folio: n} : null;
   }
-  if (FILTER.book === "all") return null;
+  if (!filtersOn || FILTER.book === "all") return null;
   for (const code of Object.keys(STORY)){
     if ((BOOK[code] || {}).name !== FILTER.book) continue;
     const at = pageIn(code, n);
@@ -6479,7 +6486,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"9b235d9"}`,
+  const lines = [`App: ${document.title}, build ${"1bdbbc0"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -11211,7 +11218,7 @@ function stage(query){
 function theOnlyOne(){
   if (!active) return null;
   // Filtered to one book, the answer is in it: open the best story the filter leaves.
-  if (FILTER.book !== "all"){
+  if (filtersOn && FILTER.book !== "all"){
     const kept = active.ranked.filter(r => passesFilter(r.code));
     const top = filterOrder(kept.filter(r => r.worth))[0] || filterOrder(kept)[0];
     if (top) return top;
@@ -11634,6 +11641,16 @@ window.keepPlace = () => {
   const q = box.value.trim();
   if (q || picked) try { sessionStorage.setItem("restore-search", JSON.stringify({q, story: picked})); } catch (e) { /* not kept */ }
 };
+
+// "Latest update Oct 18 at 11:49 pm", in the reader's own time zone: the commit this build came from.
+(() => {
+  const when = new Date("2026-10-19T00:00:51-05:00"), el = document.getElementById("updated");
+  if (!el || isNaN(when)) return;
+  const day = when.toLocaleDateString("en-US", {month: "short", day: "numeric"});
+  const time = when.toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit"}).replace(/\s/g, " ").toLowerCase();
+  el.textContent = `Latest update ${day} at ${time}`;
+  el.title = when.toString();
+})();
 </script>
 </body>
 </html>
