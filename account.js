@@ -426,12 +426,14 @@ function onAuth(event, session) {
   paintBar();
   if (event === "PASSWORD_RECOVERY" && me) openRecovery();
   if (me && !was) onSignedIn(); else if (!me && was) onSignedOut();
+  if (event !== "INITIAL_SESSION" && Boolean(me) !== Boolean(was)) document.dispatchEvent(new Event("accountchange"));
 }
 
 root.Account = {
   open: () => openDialog(), user: () => me, saveBookmark,
   lastTag: () => kept.get(LAST_TAG) || "",
   prompt: say => { mode = "in"; openDialog(say); },      // the sign-in dialog, with a reason
+  client: () => db,                                      // for the serial reader (web/src/serial.js)
 };
 
 load(SUPABASE).then(async () => {
@@ -450,5 +452,6 @@ load(SUPABASE).then(async () => {
   paintBar();
   bar.hidden = false;
   document.documentElement.classList.add("has-account");
+  document.dispatchEvent(new Event("accountready"));      // the serial reader starts from here
 }).catch(() => { /* offline or blocked: the reader goes on without accounts */ });
 })(typeof window === "undefined" ? globalThis : window);

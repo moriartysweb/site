@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Killer Serials: your emails</title>
+<style>
+  :root{--ground:#fbf8ee;--ink:#2a2416;--soft:#6b6450;--link:#0b6b49;--rule:#c4b893}
+  @media (prefers-color-scheme:dark){:root{--ground:#14161f;--ink:#eceff7;--soft:#a7aec4;--link:#8bf0c4;--rule:#3c4257}}
+  body{margin:0;background:var(--ground);color:var(--ink);font:19px/1.55 Georgia,"Times New Roman",serif}
+  main{max-width:30em;margin:12vh auto 0;padding:0 20px}
+  h1{margin:0 0 .6em;font:700 13px/1 Arial,sans-serif;letter-spacing:3px;color:var(--soft)}
+  p{margin:0 0 1em}
+  a{color:var(--link)}
+  hr{border:0;border-top:1px solid var(--rule);margin:1.6em 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>KILLER SERIALS</h1>
+  <p id="say">One moment&hellip;</p>
+  <hr>
+  <p><a href="https://killer-serials.com/">killer-serials.com</a></p>
+</main>
+<script>
+  // The unsubscribe link in an email goes to a function that does the work, then sends the reader here with the result.
+  // Only these fixed sentences are ever shown: nothing from the address is written into the page.
+  const q = new URLSearchParams(location.search);
+  const say = {
+    teaser: "You will get no more installment emails for this reading.",
+    digest: "You will get no more digests for this reading.",
+    failed: "That link did not work. It may have been changed on the way, or something went wrong. Please try the link in your email again, or contact the admin.",
+  };
+  const ok = q.get("ok");
+  // An address that says nothing (the page opened by hand) or says something unrecognised goes home. A failed
+  // unsubscribe (ok=0) is the one thing worth saying: the reader should not think it worked.
+  if (ok === "0") document.getElementById("say").textContent = say.failed;
+  else if (ok === "1" && say[q.get("k")] && q.get("k") !== "failed") document.getElementById("say").textContent = say[q.get("k")];
+  else location.replace("https://killer-serials.com/");
+</script>
+</body>
+</html>

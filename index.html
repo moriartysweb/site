@@ -1312,6 +1312,97 @@ a.bsjtitle{color:#e8c547}
 .mfeedback{display:none;margin:22px 0 28px;font-size:14px;color:var(--ink-soft)}
 :root.simplex .mfeedback{display:block}
 .mfeedback a{display:inline-block;padding:10px 4px;font-weight:600;color:var(--hit-strong)}
+/* The serial reader: the bar over an open installment, and the dialogs for choosing and joining a reading. */
+.serialbar{position:fixed;top:10px;left:12px;right:12px;margin:0 auto;width:fit-content;z-index:65;box-sizing:border-box;
+  display:flex;align-items:center;gap:10px;max-width:min(860px,calc(100vw - 24px));padding:7px 12px;
+  border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--ink);
+  box-shadow:0 4px 16px rgba(0,0,0,.28);font:13px/1.35 "IBM Plex Sans",system-ui,sans-serif}
+.serialbar span{min-width:0;text-wrap:balance}
+.serialbar button{flex:none;padding:5px 11px;border:1px solid var(--hit-strong);border-radius:999px;background:transparent;
+  color:var(--hit-strong);font:inherit;font-weight:600;cursor:pointer}
+.serialbar button:hover:not(:disabled){background:var(--hit-soft)}
+.serialbar button:disabled{border-color:var(--rule);color:var(--ink-faint);cursor:default}
+.serialbar .serialleave{border-color:var(--rule);color:var(--ink-soft);font-weight:400}
+@media (max-width:700px){.serialbar{border-radius:14px;flex-wrap:wrap;justify-content:center;text-align:center}}
+
+.serialdlg{box-sizing:border-box;width:min(520px,calc(100vw - 24px));padding:20px 22px;border:1px solid var(--rule);
+  border-radius:14px;background:var(--panel);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+.serialdlg::backdrop{background:rgba(0,0,0,.45)}
+.serialdlg h2{margin:0 0 12px;font-size:18px}
+.serialway{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px;cursor:pointer}
+.serialway input{margin-top:4px}
+.serialsub{margin:0 0 10px 24px;padding:8px 12px;border:1px solid var(--rule);border-radius:10px}
+.serialsub[hidden]{display:none}
+.serialsub input[type=date]{margin:4px 0 0 24px;font:inherit}
+.serialdlg p{min-height:1.4em;margin:6px 0;color:var(--flag)}
+.serialdlg button[type=submit],.serialpick{padding:9px 14px;border:1px solid var(--hit-strong);border-radius:10px;
+  background:transparent;color:var(--hit-strong);font:inherit;font-weight:600;cursor:pointer}
+.serialdlg button[type=submit]:hover:not(:disabled),.serialpick:hover{background:var(--hit-soft)}
+.serialpick{display:block;width:100%;margin:0 0 8px;text-align:left}
+.serialquiet{padding:6px 2px;border:0;background:transparent;color:var(--ink-faint);font:inherit;text-decoration:underline;cursor:pointer}
+.serialstats{position:fixed;top:56px;left:12px;right:12px;margin:0 auto;width:fit-content;z-index:65;box-sizing:border-box;max-width:min(680px,calc(100vw - 24px));
+  padding:8px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--panel);color:var(--ink-soft);
+  box-shadow:0 4px 16px rgba(0,0,0,.28);font:13px/1.4 "IBM Plex Sans",system-ui,sans-serif;text-align:center}
+
+/* the words a note was made on */
+::highlight(serial-mine){background-color:color-mix(in srgb,var(--mark) 75%,transparent)}
+::highlight(serial-group){background-color:color-mix(in srgb,var(--hit) 24%,transparent)}
+::highlight(serial-under){text-decoration:underline;text-decoration-thickness:2px;text-decoration-color:var(--hit-strong)}
+
+/* the comments, down the right; along the bottom on a narrow screen */
+.serialnotes{position:fixed;right:14px;top:110px;bottom:14px;z-index:60;box-sizing:border-box;width:min(300px,34vw);overflow:auto;
+  padding:10px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--panel);color:var(--ink);
+  box-shadow:0 4px 16px rgba(0,0,0,.22);font:13px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+.serialhide{display:block;margin:0 0 8px;color:var(--ink-soft)}
+.serialnone{margin:0;color:var(--ink-faint)}
+.serialthread{margin:0 0 10px;padding:0 0 8px;border-bottom:1px solid var(--rule)}
+.serialcomment{cursor:default}
+.serialcomment.reply{margin:6px 0 0 14px;padding-left:8px;border-left:2px solid var(--rule)}
+.serialcomment.private small{color:var(--flag)}
+.serialcomment small{color:var(--ink-faint)}
+.serialcomment p{margin:2px 0;overflow-wrap:anywhere}
+.serialcomment .withdrawn{color:var(--ink-faint);font-style:italic}
+.serialreacts{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px}
+.serialreact{padding:2px 7px;border:1px solid var(--rule);border-radius:999px;background:transparent;color:var(--ink);font:inherit;cursor:pointer}
+.serialreact.on{border-color:var(--hit-strong);background:var(--hit-soft)}
+.serialwolf{margin-left:2px}
+.serialtext{box-sizing:border-box;width:100%;margin:0 0 8px;padding:8px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--ground);color:var(--ink);font:inherit}
+@media (max-width:900px){.serialnotes{left:12px;right:12px;top:auto;bottom:12px;width:auto;max-height:38vh}}
+
+/* what the selection popup adds inside a serial */
+.spserial{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.spserial .spreact{padding:3px 8px;border:1px solid var(--rule);border-radius:999px;background:transparent;font:inherit;cursor:pointer}
+.spserial .spnote{padding:4px 10px;border:1px solid var(--hit-strong);border-radius:8px;background:transparent;color:var(--hit-strong);font:inherit;font-weight:600;cursor:pointer}
+.spserial[hidden]{display:none}
+.serialnotes h3{margin:10px 0 4px;font-size:13px;color:var(--ink-soft)}
+.serialmarked{display:block;width:100%;margin:0 0 4px;padding:4px 6px;border:0;border-radius:6px;background:transparent;color:var(--ink);
+  font:inherit;text-align:left;cursor:pointer}
+.serialmarked:hover{background:var(--hit-soft)}
+.serialstars{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:0 0 4px}
+.serialstars span{min-width:96px}
+.serialstars button{padding:0 2px;border:0;background:transparent;color:var(--hit-strong);font:inherit;font-size:16px;cursor:pointer}
+.serialstars small{margin-left:6px;color:var(--ink-faint)}
+.serialstats label{display:block;margin-top:6px;color:var(--ink)}
+.serialstats p{margin:0}
+
+/* while a serial is open the search that opened it is not the point: its verdict and strongest-passage line stay out of the way */
+:root.serialing .reading .verdict.lede{display:none}
+
+/* the little bar under the account bar: join a reading, and the admin's panel for those who may */
+.serialtools{display:flex;gap:10px;flex-wrap:wrap;padding:0 14px 6px;font:13px/1.4 system-ui,sans-serif}
+.serialtools button{font:inherit;padding:4px 11px;border:1px solid var(--hit-strong,#0b6b49);border-radius:6px;background:transparent;color:var(--hit-strong,#0b6b49);cursor:pointer}
+.serialtools button:hover{background:var(--hit-soft,#dcf2e7)}
+.serialcode{display:block;box-sizing:border-box;width:100%;margin:6px 0;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--ground);color:var(--ink);font:inherit;letter-spacing:.04em}
+.serialadmin{width:min(760px,calc(100vw - 24px))}
+.serialrow{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:0 0 6px;padding:6px 0;border-bottom:1px solid var(--rule)}
+.serialrow span{min-width:0;overflow-wrap:anywhere}
+.serialrow.off span{color:var(--ink-faint)}
+.serialrow button,.serialnew button,.serialsure button{flex:none;padding:4px 10px;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--ink);font:inherit;cursor:pointer}
+.serialrow button:disabled{opacity:.45;cursor:default}
+.serialsure,.serialnew{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.serialnew h3{flex:0 0 100%;margin:10px 0 0;font-size:13px;color:var(--ink-soft)}
+.serialnew input,.serialnew select,.serialsure input{padding:6px;border:1px solid var(--rule);border-radius:6px;background:var(--ground);color:var(--ink);font:inherit}
 mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
 mark.k0,.termkey.k0{background:var(--k0)} mark.k1,.termkey.k1{background:var(--k1)} mark.k2,.termkey.k2{background:var(--k2)}
 mark.k3,.termkey.k3{background:var(--k3)} mark.k4,.termkey.k4{background:var(--k4)} mark.k5,.termkey.k5{background:var(--k5)}
@@ -2830,7 +2921,7 @@ const resultFor = code => active ? (active.ranked.find(r => r.code === code) || 
 const wholes = Object.create(null);
 
 const readable = code => {
-  const found = resultFor(code);
+  const found = serialWhole === code ? null : resultFor(code);      // a story sent to whole is not opened at its best match
   if (found) return found;
   if (!code || !STORY[code]) return null;
   if (!wholes[code]){
@@ -5134,6 +5225,7 @@ function storyBlocks(hit){
       // story before it included; it is shown, never searched
       const before = own && bi < own[0] && f === story.page && leafing === "authentic";
       if (own && (bi < own[0] || bi >= own[1]) && !before) return;
+      if (serialCuts(hit.code) && !serialHolds(f, bi)) return;       // a serial reads one installment at a time
       if (leaked(kind, text, page.b, f, story)) return;
       items.push({f, bi, kind, text: mend(f, bi, text), before, code: hit.code});
     });
@@ -5170,6 +5262,7 @@ function storyBlocks(hit){
     // a numbered heading is a chapter's, even one that carries its story's name
     item.own = item.kind !== 0 && !/^(?:Part|Chapter)\s/i.test(item.text) && bareTitle(item.text) === mine;
     item.open = unfolded || (hit.whole && !overBudget) || STORY[hit.code].front || item.hit
+                || serialCuts(hit.code)
                 || revealed.has(i) || linkedOpen(item.f)
                 || (looking !== null && (looking.lastIndex = 0, looking.test(seen)));
     item.lift = item.own && !item.open;
@@ -5740,8 +5833,9 @@ function bodyHTML(hit, spot){
   const story = STORY[hit.code];
   const scope = story.front ? "this section" : "this story";
   const where = story.front || story.unprinted ? "in one passage" : `on ${pageSaid(hit.best.page, hit.best.pi)}`;
-  return `<p class="verdict lede"><strong>${hit.covers} of ${active.of} terms</strong> appear across ${scope}`
-    + ` &mdash; <strong>${hit.best.covers} of ${active.of}</strong> of them ${where}.</p>`
+  // with no search behind the passage (a serial's installment, a bookmark) there are no terms to report
+  return (active && serialWhole !== hit.code ? `<p class="verdict lede"><strong>${hit.covers} of ${active.of} terms</strong> appear across ${scope}`
+    + ` &mdash; <strong>${hit.best.covers} of ${active.of}</strong> of them ${where}.</p>` : "")
     + aboutHTML(hit.code) + windowHTML(hit);
 }
 
@@ -6572,7 +6666,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"bcea7c2"}`,
+  const lines = [`App: ${document.title}, build ${"f246369"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from this version's defaults: the other printings start off
@@ -8266,7 +8360,7 @@ function stackFeedback(){
 }
 
 function offerFeedback(){
-  if (feedbackCard || feedbackCardClosed()) return;
+  if (feedbackCard || feedbackCardClosed() || serialQuiet()) return;
   feedbackCard = document.createElement("aside");
   feedbackCard.className = "feedbackcard";
   feedbackCard.setAttribute("aria-label", "Feedback");
@@ -9478,6 +9572,7 @@ function buildSelpop(){
   selpop.innerHTML = `<div class="spmain"><button type="button" class="spcopy">Copy</button>`
     + `<button type="button" class="splink">Copy with link</button>`
     + `<button type="button" class="spmark">Create a bookmark here</button></div>`
+    + serialPopHTML()
     + `<form class="sptag" hidden><label>Optional tag<span class="spbox">`
     + `<input class="sptext" name="tag" type="text" maxlength="40" autocomplete="off" spellcheck="false">`
     + `<button type="button" class="spclear" aria-label="Clear the tag">×</button></span></label>`
@@ -9498,7 +9593,7 @@ function showSelpop(info, menu){
   // opened by a right-click it is a menu: always Copy, and the link the automatic copy leaves out
   menuMode = Boolean(menu);
   const canCopy = menuMode || !hl.autocopy || info.words === 1, canMark = canBookmark();
-  if (!canCopy && !canMark) return hideSelpop();
+  if (!canCopy && !canMark && !serialTools()) return hideSelpop();
   if (!selpop) buildSelpop();
   selNow = info;
   selpop.querySelector(".spmain").hidden = false;
@@ -9510,6 +9605,7 @@ function showSelpop(info, menu){
   link.hidden = !menuMode;
   link.textContent = "Copy with link";
   selpop.querySelector(".spmark").hidden = !canMark;
+  serialPopShow(selpop);
   selpop.hidden = false;
   const r = info.rect, w = selpop.offsetWidth, h = selpop.offsetHeight;
   const below = r.bottom + 8 + h <= innerHeight - 8;
@@ -9547,6 +9643,7 @@ document.addEventListener("scroll", () => { if (selpop && !selpop.hidden && !sel
 async function onSelpopClick(event){
   const b = event.target.closest("button");
   if (!b) return;
+  if (serialPopClick(b)) return;
   if (b.classList.contains("spcopy")) return copyNow(b);
   if (b.classList.contains("splink")) return copyNow(b, true);
   if (b.classList.contains("spmark")) return startMark();
@@ -9605,6 +9702,1236 @@ document.addEventListener("contextmenu", event => {
   const at = {left: event.clientX, right: event.clientX, top: event.clientY, bottom: event.clientY};
   showSelpop({...info, rect: at}, true);
 });
+// ---- serials: reading a story in its magazine installments, with a cohort ---------------
+// The decisions live here as pure functions, so web/checks/serial.js can ask them questions
+// without a screen. The SQL in web/site/serial.sql makes the same decisions on the server,
+// which is the one that counts: keep the two in step.
+
+const dateOf = s => new Date(String(s).slice(0, 10) + "T00:00:00Z");
+
+// The day installment n (1-based) is released for this member. On the standard schedule that is the
+// code's date; "from this point" counts monthly from the member's own start date.
+function releaseOf(member, code, n){
+  if (member.schedule === "mine"){
+    // the same day each month, or the month's last day when it has no such day (31 Jan + 1 month = 28 Feb): the
+    // arithmetic Postgres does, so the mail, the unlock and this agree
+    const d = dateOf(member.start_on), day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + n - 1);
+    d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()));
+    return d;
+  }
+  return dateOf(code.release_dates[n - 1]);
+}
+
+// How many installments this member may read now. Own pace is the reader's own count, never past
+// what the cohort has released; "everything" is the whole story.
+function unlockedCount(member, code, now){
+  if (code.revoked) return 0;                  // a disabled code unlocks nothing, whatever the mode
+  const total = code.release_dates.length;
+  const out = code.release_dates.filter((_, i) => releaseOf({schedule: "standard"}, code, i + 1) <= now).length;
+  if (member.mode === "everything") return total;
+  if (member.mode === "ownpace") return Math.min(member.unlocked || 0, out);
+  if (member.mode === "monthly" && member.schedule === "mine"){
+    let k = 0;
+    while (k < total && releaseOf(member, code, k + 1) <= now) k++;
+    return k;
+  }
+  return out;
+}
+
+// A comment's score: one point for each of the four kind reactions, half a point off for each thumbs down.
+const KIND = new Set(["star", "heart", "diamond", "shaka"]);
+function commentScore(reactions){
+  let s = 0;
+  for (const r of reactions){ if (KIND.has(r)) s += 1; else if (r === "down") s -= 0.5; }
+  return s;
+}
+const hasWolfBadge = score => score >= 10;
+
+// Group figures are shown only when at least three readers have contributed, so no one can be picked out.
+function aggregateOrNull(values){
+  if (values.length < 3) return null;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+// The installment an own-pace reader may unlock next, or null: one past their own count, if the cohort has released it.
+function serialNextToUnlock(member, code, now){
+  if (member.mode !== "ownpace") return null;
+  const released = unlockedCount({mode: "catchup"}, code, now);
+  return (member.unlocked || 0) < released ? (member.unlocked || 0) + 1 : null;
+}
+
+// Which email a reader can opt out of: the digest for "everything" readers, the installment email for the others;
+// own-pace readers are sent nothing on a schedule.
+function serialMailChoices(member){
+  if (member.mode === "everything") return {kind: "digest", on: Boolean(member.digest)};
+  if (member.mode === "ownpace") return {kind: null, on: false};
+  return {kind: "teaser", on: Boolean(member.mail)};
+}
+
+// Where a returning reader goes: nowhere (not in a program), straight in (one), or a menu (several).
+// `opened` is the furthest installment each program has been opened at, `latest` what is unlocked now.
+function serialLanding(memberships, opened, latest){
+  const fresh = memberships.map(m => m.code).filter(c => (latest[c] || 0) > (opened[c] || 0));
+  if (!memberships.length) return {kind: "none"};
+  if (memberships.length === 1){
+    const code = memberships[0].code;
+    return {kind: "go", code, n: latest[code] || 0, fresh};
+  }
+  return {kind: "menu", fresh};
+}
+
+// ---- the page's calls to the database --------------------------------------------------
+// All of them go through the account's Supabase client (/account.js) and answer the way
+// Account.saveBookmark does: {ok, data}, {error}, or {signedOut} when no one is signed in.
+// Row-level security is the real gate; these only refuse what could never be valid.
+let serialAccount = () => window.Account;
+const setSerialAccount = f => { serialAccount = f; };
+
+const SERIALS = {"hound":{"serial":"hound","story":"HOUN","title":"The Hound of the Baskervilles","magazine":"The Strand Magazine","wolf":{"f":679,"b":6,"words":"footprints of a gigantic hound"},"installments":[{"n":1,"issue":"August 1901","vol":"xxii","number":128,"chapters":[1,2],"start":{"f":669,"b":0,"words":"chapter 1 mr sherlock"},"end":{"f":679,"b":6,"words":"footprints of a gigantic hound"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand1.pdf"},{"n":2,"issue":"September 1901","vol":"xxii","number":129,"chapters":[3,4],"start":{"f":679,"b":7,"words":"chapter 3 the problem"},"end":{"f":692,"b":2,"words":"are due at the hotel"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand2.pdf"},{"n":3,"issue":"October 1901","vol":"xxii","number":130,"chapters":[5,6],"start":{"f":692,"b":3,"words":"chapter 5 three broken"},"end":{"f":704,"b":0,"words":"the ivy on the wall"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand3.pdf"},{"n":4,"issue":"November 1901","vol":"xxii","number":131,"chapters":[7,8],"start":{"f":704,"b":1,"words":"chapter 7 the stapletons"},"end":{"f":716,"b":2,"words":"my next report interesting reading"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand4.pdf"},{"n":5,"issue":"December 1901","vol":"xxii","number":132,"chapters":[9],"start":{"f":716,"b":3,"words":"chapter 9 second report"},"end":{"f":726,"b":2,"words":"of the next few days"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand_IX.pdf"},{"n":6,"issue":"January 1902","vol":"xxiii","number":133,"chapters":[10,11],"start":{"f":726,"b":3,"words":"chapter 10 extract from"},"end":{"f":739,"b":5,"words":"more comfortable outside than in"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand5.pdf"},{"n":7,"issue":"February 1902","vol":"xxiii","number":134,"chapters":[12],"start":{"f":740,"b":0,"words":"chapter 12 death on"},"end":{"f":747,"b":2,"words":"so horribly to his end"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand6.pdf"},{"n":8,"issue":"March 1902","vol":"xxiii","number":135,"chapters":[13,14],"start":{"f":747,"b":3,"words":"chapter 13 fixing the"},"end":{"f":757,"b":0,"words":"of the wall of fog"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand7.pdf"},{"n":9,"issue":"April 1902","vol":"xxiii","number":136,"chapters":[14,15],"start":{"f":757,"b":1,"words":"with long bounds the"},"end":{"f":766,"b":4,"words":"little dinner on the way"},"pdf":"resource_files/HoundSerialized/BaskervillesStrand8.pdf"}],"chapter_starts":[{"ch":1,"f":669,"b":0},{"ch":2,"f":673,"b":3},{"ch":3,"f":679,"b":7},{"ch":4,"f":685,"b":1},{"ch":5,"f":692,"b":3},{"ch":6,"f":698,"b":15},{"ch":7,"f":704,"b":1},{"ch":8,"f":712,"b":9},{"ch":9,"f":716,"b":3},{"ch":10,"f":726,"b":3},{"ch":11,"f":732,"b":31},{"ch":12,"f":740,"b":0},{"ch":13,"f":747,"b":3},{"ch":14,"f":754,"b":4},{"ch":15,"f":761,"b":0}]}};
+const SERIAL_MODES = ["catchup", "ownpace", "monthly", "everything"];
+const SERIAL_EMOJI = ["star", "heart", "diamond", "shaka", "down"];     // the wolf is also a passage reaction, once earned
+
+// Plain text only, one line, capped: no angle brackets or control characters.
+const serialClean = (s, max) => Array.from(String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f<>]/g, " ")
+  .replace(/\s+/g, " ").trim()).slice(0, max).join("");
+
+async function serialCall(make){
+  const acct = serialAccount();
+  if (!acct || !acct.user()) return {signedOut: true};
+  const db = acct.client && acct.client();
+  if (!db) return {error: "Accounts are not available just now."};
+  try {
+    const {data, error} = await make(db);
+    return error ? {error: error.message || String(error)} : {ok: true, data};
+  } catch (e) { return {error: e.message || String(e)}; }
+}
+const serialRefuse = text => ({error: text});
+const signedOutFirst = () => { const a = serialAccount(); return !a || !a.user(); };
+
+function serialJoin(code, mode, schedule, startOn){
+  if (signedOutFirst()) return Promise.resolve({signedOut: true});
+  if (!SERIAL_MODES.includes(mode) || !["standard", "mine"].includes(schedule)) return Promise.resolve(serialRefuse("Unknown way of joining."));
+  return serialCall(db => db.rpc("redeem_code", {p_code: code, p_mode: mode, p_schedule: schedule, p_start: startOn}));
+}
+const serialMemberships = () => serialCall(db => db.from("memberships").select("*"));
+const serialCodes = () => serialCall(db => db.from("serial_codes").select("*"));
+const serialAnnotations = (code, installment) => serialCall(db => db.from("annotations").select("*")
+  .eq("code", code).eq("installment", installment).order("created_at"));
+
+function serialAnnotate({code, installment, anchor, comment, visibility, parent}){
+  if (signedOutFirst()) return Promise.resolve({signedOut: true});
+  if (!["group", "private"].includes(visibility)) return Promise.resolve(serialRefuse("A comment is for the group or private."));
+  const row = {code, installment, anchor, comment: serialClean(comment, 2000), visibility, parent: parent || null};
+  return serialCall(db => db.from("annotations").insert(row).select().single());
+}
+// A withdrawn comment keeps its row so the replies under it survive; its words go.
+const serialWithdraw = id => serialCall(db => db.from("annotations").update({withdrawn: true, comment: ""}).eq("id", id));
+
+function serialReact(code, installment, kind, target, emoji){
+  if (signedOutFirst()) return Promise.resolve({signedOut: true});
+  const ok = kind === "passage" ? [...SERIAL_EMOJI, "wolf"] : kind === "comment" ? SERIAL_EMOJI : [];
+  if (!ok.includes(emoji)) return Promise.resolve(serialRefuse("That reaction is not available here."));
+  return serialCall(db => db.from("reactions").upsert({code, installment, target_kind: kind, target, emoji},
+    {onConflict: "user_id,code,target_kind,target"}));
+}
+const serialUnreact = (code, kind, target) => serialCall(db => db.from("reactions").delete()
+  .eq("code", code).eq("target_kind", kind).eq("target", target));
+function serialRate(code, installment, kind, n, stars){
+  if (signedOutFirst()) return Promise.resolve({signedOut: true});
+  if (!["chapter", "issue"].includes(kind) || !Number.isInteger(stars) || stars < 1 || stars > 5)
+    return Promise.resolve(serialRefuse("A rating is one to five stars, for a chapter or an issue."));
+  return serialCall(db => db.from("ratings").upsert({code, installment, kind, n, stars}, {onConflict: "user_id,code,kind,n"}));
+}
+const serialProgress = (code, installment, snap) => serialCall(db => db.from("read_progress")
+  .upsert({code, installment, high_water: snap.highWater, seen: snap.seen,
+           ...(snap.finishedAt ? {finished_at: snap.finishedAt} : {})}, {onConflict: "user_id,code,installment"}));
+const serialUnlock = (code, n) => serialCall(db => db.from("memberships").update({unlocked: n}).eq("code", code));
+// ---- codes: typing one in, and the admin's tools -------------------------------------------------------------
+const SERIAL_DISABLED_NOTE = "That code is temporarily disabled, please contact the admin.";
+const CODE_SHAPE = /^[A-Za-z0-9_-]{3,40}$/;
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";          // 32 characters, so any byte maps evenly; no I, O, 0 or 1
+
+const serialCodeClean = text => { const t = String(text == null ? "" : text).trim(); return CODE_SHAPE.test(t) ? t : null; };
+const serialMakeCode = (prefix, bytes) => `${prefix}-${bytes.slice(0, 6).map(b => CODE_ALPHABET[b % 32]).join("")}`;
+// What the database says to a join that failed, in words for the reader.
+const serialJoinMessage = text => /disabled/.test(text) ? SERIAL_DISABLED_NOTE
+  : /not open|not valid/.test(text) ? "That code is not valid."
+  : /closed to you/.test(text) ? "This reading is closed to you." : text;
+const serialCodeCounts = rows => rows.reduce((o, r) => { o[r.code] = (o[r.code] || 0) + 1; return o; }, {});
+// The nine release days of a new code: monthly from its start, month ends clamped as Postgres does.
+const serialMonthlyDates = (start, n) =>
+  Array.from({length: n}, (_, i) => releaseOf({schedule: "mine", start_on: start}, null, i + 1).toISOString().slice(0, 10));
+
+const serialCodeStatus = code => serialCall(db => db.rpc("code_status", {p_code: code}));
+const serialIsAdmin = () => serialCall(db => db.rpc("is_admin"));
+async function serialAdminList(){
+  const [c, m] = await Promise.all([serialCall(db => db.from("serial_codes").select("*").order("starts_on", {ascending: false})),
+                                    serialCall(db => db.from("memberships").select("code"))]);
+  if (!c.ok) return c;
+  return {ok: true, data: {codes: c.data, counts: m.ok && Array.isArray(m.data) ? serialCodeCounts(m.data) : {}}};
+}
+function serialAdminCreate({code, serial, start}){
+  const clean = serialCodeClean(code);
+  if (!clean) return Promise.resolve(serialRefuse("A code is 3 to 40 letters, numbers, hyphens or underscores."));
+  if (!SERIALS[serial]) return Promise.resolve(serialRefuse("That story is not one of the serials."));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start || "") || isNaN(dateOf(start))) return Promise.resolve(serialRefuse("The start is a date, as 2026-12-01."));
+  const row = {code: clean, serial, starts_on: start, release_dates: serialMonthlyDates(start, SERIALS[serial].installments.length)};
+  return serialCall(db => db.from("serial_codes").insert(row));
+}
+const serialAdminSetDisabled = (code, off) => serialCall(db => db.from("serial_codes").update({revoked: off}).eq("code", code));
+const serialAdminRemove = code => serialCall(db => db.from("serial_codes").delete().eq("code", code));
+const serialMyRatings = code => serialCall(db => db.from("ratings").select("*").eq("code", code));
+const serialProgressLoad = code => serialCall(db => db.from("read_progress").select("*").eq("code", code));
+const serialReactions = (code, installment) => serialCall(db => db.from("reactions").select("*")
+  .eq("code", code).eq("installment", installment));
+const serialMarkWolf = () => serialCall(db => db.rpc("mark_wolf"));
+const serialWolfRows = () => serialCall(db => db.from("wolf_unlocked").select("user_id"));
+const serialStats = code => serialCall(db => db.rpc("cohort_stats", {p_code: code}));
+const serialMailPrefs = (code, {digest, mail}) => serialCall(db => db.from("memberships").update({digest, mail}).eq("code", code));
+
+// ---- reading one installment ---------------------------------------------------------------
+const SERIAL_LINK = /^#serial=([A-Za-z0-9_-]{3,40})(?:\/(\d{1,3}))?$/;
+// #serial=<code> opens a program; #serial=<code>/<n> a given installment of it.
+function serialRoute(hash){
+  const m = SERIAL_LINK.exec(hash);
+  if (!m) return null;
+  const n = m[2] ? +m[2] : null;
+  return {code: m[1], n: n >= 1 && n <= 99 ? n : null};
+}
+
+// Where installment n of a serial starts and ends in the text, as (folio, block) anchors.
+function serialRange(serial, n){
+  const s = SERIALS[serial], i = s && s.installments[n - 1];
+  if (!i) return null;
+  return {story: s.story, start: {f: i.start.f, b: i.start.b}, end: {f: i.end.f, b: i.end.b}};
+}
+
+// The stretch of one story the reader is shut into, or null. text.js asks these two while it lays the story out.
+let serialCut = null;
+const setSerialCut = c => { serialCut = c; };
+const serialCuts = code => Boolean(serialCut) && serialCut.code === code;
+const serialHolds = (f, bi) => (f > serialCut.start.f || (f === serialCut.start.f && bi >= serialCut.start.b))
+                            && (f < serialCut.end.f || (f === serialCut.end.f && bi <= serialCut.end.b));
+
+// ---- arriving: what to do with the address, the account and the programs -----------------------
+// Decided first as data so web/checks/serial.js can ask it questions; serialBoot below carries it out.
+function serialPlan({route, hash, signedIn, memberships, latest, landed, open, disabled}){
+  if (!signedIn && open) return {do: "close"};          // signed out inside a serial: it goes, and the comments with it
+  if (route){
+    if (!signedIn) return {do: "prompt", code: route.code};
+    if (!memberships.some(m => m.code === route.code)) return {do: "join", code: route.code};
+    if (disabled && disabled[route.code]) return {do: "disabled", code: route.code};
+    const top = latest[route.code] || 0;
+    return top ? {do: "open", code: route.code, n: Math.min(route.n || top, top)} : {do: "wait", code: route.code};
+  }
+  // Back on the site: land in the program, unless the reader came by a link to something else
+  // or has already stepped out of it this session.
+  if (!signedIn || hash || landed || !memberships.length) return {do: "nothing"};
+  if (memberships.length > 1) return {do: "menu"};
+  const code = memberships[0].code, top = latest[code] || 0;
+  if (disabled && disabled[code]) return {do: "disabled", code};
+  return top ? {do: "open", code, n: top} : {do: "wait", code};
+}
+
+// What was last opened in each program, kept on this device: it is what makes "new installment" known.
+const OPENED_KEY = "serial-opened";
+function serialOpened(){
+  try { return JSON.parse(localStorage.getItem(OPENED_KEY)) || {}; } catch (e) { return {}; }
+}
+function serialMarkOpened(code, n){
+  const o = serialOpened();
+  o[code] = Math.max(o[code] || 0, n);
+  try { localStorage.setItem(OPENED_KEY, JSON.stringify(o)); } catch (e) { /* not kept */ }
+}
+function serialLanded(){
+  try { return sessionStorage.getItem("serial-landed") === "1"; } catch (e) { return false; }
+}
+function serialLand(){
+  try { sessionStorage.setItem("serial-landed", "1"); } catch (e) { /* not kept */ }
+}
+
+// The page's own first search has landed (or none was run). A search that lands closes whatever passage is open,
+// so a serial waits for this before opening one.
+let bootDone = false;
+let serialWhole = null;                // a story to be opened whole, from its first page, whatever the last search found
+let serialNow = null;                 // {code, n} while an installment is open
+// Reading a serial, or on the way into one: the tour, the first-visit spotlight and the feedback card stay away.
+const serialQuiet = () => Boolean(serialNow) || Boolean(serialRoute(location.hash));
+let serialData = null;                // {memberships, codes, latest} as last fetched
+
+async function serialLoad(){
+  const [m, c] = await Promise.all([serialMemberships(), serialCodes()]);
+  if (!m.ok || !c.ok) return null;
+  const codes = Object.fromEntries(c.data.map(r => [r.code, r]));
+  const memberships = m.data.filter(x => codes[x.code] && !x.removed);
+  serialWolfRows().then(r => { if (r.ok && r.data.length) try { localStorage.setItem("serial-wolf", "1"); } catch (e) { /* not kept */ } });
+  const latest = Object.fromEntries(memberships.map(x => [x.code, unlockedCount(x, codes[x.code], new Date())]));
+  return {memberships, codes, latest};
+}
+
+async function serialBoot(){
+  if (!SERIALS.hound || !window.Account || !document.documentElement.classList.contains("has-account")) return;
+  serialMountTools();
+  const me = window.Account.user();
+  serialData = me ? await serialLoad() : null;
+  if (me && !serialData) return;                  // the database did not answer: the site goes on as it was
+  const plan = serialPlan({route: serialRoute(location.hash), hash: location.hash, signedIn: Boolean(me),
+    memberships: serialData ? serialData.memberships : [], latest: serialData ? serialData.latest : {}, landed: serialLanded(), open: Boolean(serialNow),
+    disabled: serialData ? Object.fromEntries(serialData.memberships.map(m => [m.code, Boolean(serialData.codes[m.code].revoked)])) : {}});
+  if (plan.do === "close") pick(null);
+  else if (plan.do === "prompt") window.Account.prompt("Sign in to read this serial.");
+  else if (plan.do === "disabled"){ serialLand(); serialDisabled(plan.code); }
+  else if (plan.do === "join") serialJoinDialog(plan.code);
+  else if (plan.do === "wait") serialSoon(plan.code);
+  else if (plan.do === "open"){ if (!serialRoute(location.hash)) serialLand(); openSerial(plan.code, plan.n); }
+  else if (plan.do === "menu"){ serialLand(); serialMenu(); }
+}
+
+function serialWaitNote(codeRow, member){
+  if (codeRow.revoked) return "This reading has been closed.";
+  const first = releaseOf(member, codeRow, 1).toLocaleDateString("en-US", {month: "long", day: "numeric", timeZone: "UTC"});
+  return `The first installment of ${SERIALS[codeRow.serial].title} is not out yet: it comes on ${first}.`;
+}
+function serialSoon(code){
+  pageNotice(serialWaitNote(serialData.codes[code], serialData.memberships.find(x => x.code === code)));
+}
+
+// ---- reading an installment --------------------------------------------------------------------------
+async function openSerial(code, n){
+  const c = serialData && serialData.codes[code];
+  const top = serialData ? serialData.latest[code] || 0 : 0;
+  const r = c && serialRange(c.serial, Math.min(n, top));
+  if (!r) return;
+  n = Math.min(n, top);
+  setSerialCut({code: r.story, start: r.start, end: r.end});
+  serialNow = {code, n};
+  document.documentElement.classList.add("serialing");
+  serialMarkOpened(code, n);
+  try { history.replaceState(null, "", `${location.pathname}${location.search}#serial=${code}/${n}`); } catch (e) { /* stays */ }
+  if (!hydrated) await hydrate();
+  first = false;                             // not the page's first search: no tour, no spotlight
+  for (let i = 0; i < 200 && !bootDone; i++) await new Promise(res => setTimeout(res, 50));
+  showEgs(false);                            // the search box's suggestions are not part of reading
+  box.blur();
+  pick(r.story);
+  paintSerialBar();
+  // the panel opens on the best match of whatever was last searched; an installment opens at its beginning
+  for (const ms of [700, 1800]) setTimeout(() => { const b = document.querySelector(".reading .rbody"); if (b && serialNow) b.scrollTo({top: 0, behavior: "instant"}); }, ms);
+  setTimeout(serialTrackStart, 900);         // once the passage has laid out
+  serialNotesClear();
+  setTimeout(serialNotesLoad, 900);
+}
+
+// The page skipped its own opening search on the way into a serial; leaving without one, it is owed.
+function serialOwedSearch(){
+  if (!concept() && !serialNow) search(OPENING);
+}
+
+function serialClosed(){
+  if (!serialNow && !serialCut) return;
+  serialTrackStop();
+  serialNotesClear();
+  serialCut = null;
+  serialNow = null;
+  document.documentElement.classList.remove("serialing");
+  serialLand();
+  document.querySelectorAll(".serialbar, .serialstats").forEach(e => e.remove());
+  serialOwedSearch();
+  if (serialRoute(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* stays */ }
+}
+
+function paintSerialBar(){
+  let bar = document.querySelector(".serialbar");
+  if (!bar){
+    bar = document.createElement("div");
+    bar.className = "serialbar";
+    bar.setAttribute("role", "navigation");
+    bar.setAttribute("aria-label", "Serial");
+    document.body.appendChild(bar);
+  }
+  bar.textContent = "";
+  if (!serialNow) return;
+  const {code, n} = serialNow, c = serialData.codes[code], s = SERIALS[c.serial], i = s.installments[n - 1];
+  const top = serialData.latest[code] || 0;
+  const mk = (text, on, label) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    b.setAttribute("aria-label", label);
+    b.addEventListener("click", on);
+    bar.appendChild(b);
+    return b;
+  };
+  mk("‹", () => openSerial(code, n - 1), "Previous installment").disabled = n <= 1;
+  const say = document.createElement("span");
+  say.textContent = `${s.title} · ${s.magazine}, ${i.issue} (No. ${i.number}) · installment ${n} of ${s.installments.length}`;
+  bar.appendChild(say);
+  const next = mk("›", () => openSerial(code, n + 1), "Next installment");
+  next.disabled = n >= top;
+  if (n < s.installments.length && n >= top) next.title = "The next installment is not unlocked yet";
+  const member = serialData.memberships.find(x => x.code === code);
+  const more = n >= top && serialNextToUnlock(member, c, new Date());
+  if (more) mk("Unlock installment " + more, async () => {
+    const res = await serialUnlock(code, more);
+    if (res.error) return pageNotice(res.error);
+    serialData = await serialLoad();
+    if (serialData) openSerial(code, more);
+  }, "Unlock the next installment");
+  const resume = serialResumeBlock(code, n);
+  if (resume) mk("Where I left off", () => serialResumeBlock(code, n).scrollIntoView({block: "center"}), "Scroll to where you stopped reading");
+  const stats = mk("My reading", () => {
+    const old = document.querySelector(".serialstats");
+    if (old) return old.remove();
+    const box = document.createElement("div");
+    box.className = "serialstats";
+    box.setAttribute("role", "status");
+    const say = document.createElement("p");
+    say.textContent = serialStatsText();
+    box.appendChild(say);
+    const choice = serialMailChoices(member);
+    if (choice.kind){
+      const l = document.createElement("label"), c2 = document.createElement("input");
+      c2.type = "checkbox"; c2.checked = choice.on;
+      c2.addEventListener("change", async () => {
+        if (choice.kind === "digest") member.digest = c2.checked; else member.mail = c2.checked;
+        const res = await serialMailPrefs(code, {digest: member.digest, mail: member.mail});
+        if (res.error) pageNotice(res.error);
+      });
+      l.append(c2, document.createTextNode(choice.kind === "digest" ? " Email me what the group says" : " Email me each installment"));
+      box.appendChild(l);
+    }
+    bar.after(box);
+  }, "Show how much of the story you have read");
+  stats.className = "serialleave";
+  mk("The whole canon", () => pick(null), "Leave the serial and go back to the whole canon").className = "serialleave";
+}
+
+// ---- the menu of programs, and joining one ------------------------------------------------------------
+function serialDialog(build){
+  document.querySelectorAll("dialog.serialdlg").forEach(d => d.remove());
+  const dlg = document.createElement("dialog");
+  dlg.className = "serialdlg";
+  build(dlg);
+  document.body.appendChild(dlg);
+  // closed without opening anything (joining opens an installment within a moment): the page's search is owed
+  dlg.addEventListener("close", () => { dlg.remove(); setTimeout(serialOwedSearch, 2500); });
+  dlg.showModal();
+  return dlg;
+}
+
+function serialMenu(){
+  const {memberships, codes, latest} = serialData;
+  const fresh = new Set(serialLanding(memberships, serialOpened(), latest).fresh);
+  serialDialog(dlg => {
+    const h = document.createElement("h2");
+    h.textContent = "Your readings";
+    dlg.appendChild(h);
+    memberships.forEach(m => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "serialpick";
+      const s = SERIALS[codes[m.code].serial];
+      const off = codes[m.code].revoked;
+      b.textContent = off ? `${s.title} · ${m.code} · temporarily disabled`
+        : `${s.title} · ${m.code} · ${latest[m.code] || 0} of ${s.installments.length} unlocked` + (fresh.has(m.code) ? " · new installment" : "");
+      b.addEventListener("click", () => {
+        dlg.close();
+        if (off) serialDisabled(m.code); else if (latest[m.code]) openSerial(m.code, latest[m.code]); else serialSoon(m.code);
+      });
+      dlg.appendChild(b);
+    });
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "serialquiet";
+    more.textContent = "Join another reading";
+    more.addEventListener("click", () => { dlg.close(); serialCodeDialog(); });
+    dlg.appendChild(more);
+    const out = document.createElement("button");
+    out.type = "button";
+    out.className = "serialquiet";
+    out.textContent = "Go to the whole canon";
+    out.addEventListener("click", () => dlg.close());
+    dlg.appendChild(out);
+  });
+}
+
+const JOIN_WAYS = [
+  ["catchup", "Catch up now", "Everything released so far, then each installment as the group gets it."],
+  ["ownpace", "At my own pace", "I unlock each installment when I am ready for it."],
+  ["monthly", "Read it monthly", "One installment at a time, month by month."],
+  ["everything", "Everything now", "The whole story at once. It rather defeats the point."],
+];
+
+function serialJoinDialog(code){
+  serialDialog(dlg => {
+    const form = document.createElement("form");
+    form.method = "dialog";
+    const h = document.createElement("h2");
+    h.textContent = `Join the reading ${code}`;
+    form.appendChild(h);
+    const radio = (name, value, title, note, on) => {
+      const l = document.createElement("label");
+      l.className = "serialway";
+      const i = document.createElement("input");
+      i.type = "radio"; i.name = name; i.value = value; i.checked = Boolean(on);
+      const t = document.createElement("span");
+      const b = document.createElement("b");
+      b.textContent = title;
+      t.append(b, document.createTextNode(" — " + note));
+      l.append(i, t);
+      return l;
+    };
+    JOIN_WAYS.forEach(([v, t, n], k) => form.appendChild(radio("mode", v, t, n, k === 0)));
+    const sub = document.createElement("fieldset");
+    sub.className = "serialsub";
+    sub.hidden = true;
+    sub.appendChild(radio("schedule", "standard", "With the group", "on the group’s dates.", true));
+    sub.appendChild(radio("schedule", "mine", "From this point", "installment 1 on the day below, then one a month."));
+    const day = document.createElement("input");
+    day.type = "date";
+    day.name = "start";
+    day.value = new Date().toISOString().slice(0, 10);
+    sub.appendChild(day);
+    form.appendChild(sub);
+    form.addEventListener("change", () => { sub.hidden = form.elements.mode.value !== "monthly"; });
+    const say = document.createElement("p");
+    say.setAttribute("role", "status");
+    const go = document.createElement("button");
+    go.type = "submit";
+    go.textContent = "Join";
+    form.append(say, go);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const mode = form.elements.mode.value;
+      const mine = mode === "monthly" && form.elements.schedule.value === "mine";
+      go.disabled = true;
+      const res = await serialJoin(code, mode, mine ? "mine" : "standard", mine ? day.value : null);
+      if (res.error){ say.textContent = serialJoinMessage(res.error); go.disabled = false; return; }
+      if (res.signedOut){ dlg.close(); return window.Account.prompt("Sign in to join this reading."); }
+      dlg.close();
+      serialData = await serialLoad();
+      if (serialData && serialData.latest[code]) openSerial(code, serialData.latest[code]);
+      else if (serialData) serialSoon(code);
+    });
+    dlg.appendChild(form);
+  });
+}
+
+
+// ---- watching the reader read ---------------------------------------------------------------------------------
+// What has been read is kept on this device as well as in the account, so it survives being offline or signed out.
+const seenKey = (code, n) => `serial-seen:${code}:${n}`;
+function serialLocal(code, n){
+  try { return JSON.parse(localStorage.getItem(seenKey(code, n))) || {}; } catch (e) { return {}; }
+}
+function serialKeep(code, n, saved){
+  try { localStorage.setItem(seenKey(code, n), JSON.stringify(saved)); } catch (e) { /* not kept */ }
+}
+const serialWolfKnown = () => { try { return localStorage.getItem("serial-wolf") === "1"; } catch (e) { return false; } };
+
+// The last few hundred enter/leave events, for settling DWELL_MS by trying it: read them from localStorage "serial-views".
+function serialLogView(id, kind){
+  try {
+    const log = JSON.parse(localStorage.getItem("serial-views")) || [];
+    log.push([Math.round(performance.now()), id, kind]);
+    localStorage.setItem("serial-views", JSON.stringify(log.slice(-400)));
+  } catch (e) { /* not kept */ }
+}
+
+let tracker = null, trackTimer = 0, trackIO = null, trackMO = null, lastPush = 0, lastSent = "";
+function serialTrackStop(){
+  if (tracker) serialTick(true);
+  clearInterval(trackTimer);
+  if (trackIO) trackIO.disconnect();
+  if (trackMO) trackMO.disconnect();
+  tracker = trackIO = trackMO = null;
+  document.removeEventListener("visibilitychange", serialVisibility);
+}
+const serialVisibility = () => { if (tracker) document.hidden ? tracker.hide() : tracker.show(); };
+
+function serialTrackStart(){
+  serialTrackStop();
+  const body = document.querySelector(".reading .rbody");
+  if (!body || !serialNow) return;
+  const {code, n} = serialNow;
+  const mine = serialLocal(code, n);
+  tracker = createTracker({dwellMs: DWELL_MS, now: () => performance.now()});
+  tracker.restore(mine);
+  const here = tracker;
+  serialProgressLoad(code).then(res => {
+    const row = res.ok && res.data.find(r => r.installment === n);
+    if (row && tracker === here){ here.restore({seen: row.seen, highWater: row.high_water}); serialKeep(code, n, {...serialLocal(code, n), finishedAt: row.finished_at || serialLocal(code, n).finishedAt}); }
+  });
+  const inView = new Set();
+  const idOf = el => `${el.dataset.f}:${el.dataset.b}`;
+  trackIO = new IntersectionObserver(entries => entries.forEach(e => {
+    const id = idOf(e.target), root = e.rootBounds ? e.rootBounds.height : innerHeight;
+    // in view when half of it is, or when it fills half the window (a long paragraph never shows half of itself)
+    const on = e.isIntersecting && (e.intersectionRatio >= 0.5 || e.intersectionRect.height >= 0.5 * root);
+    if (on && !inView.has(id)){ inView.add(id); here.enter(id); serialLogView(id, "in"); }
+    if (!on && inView.has(id)){ inView.delete(id); here.leave(id); serialLogView(id, "out"); }
+  }), {root: body, threshold: [0, 0.25, 0.5, 0.75, 1]});
+  const watch = () => body.querySelectorAll("[data-f][data-b]").forEach(el => trackIO.observe(el));
+  watch();
+  trackMO = new MutationObserver(watch);          // the passage is drawn again when a setting changes
+  trackMO.observe(body, {childList: true});
+  document.addEventListener("visibilitychange", serialVisibility);
+  trackTimer = setInterval(serialTick, 1000);
+}
+
+// Once a second: keep what has been read, tell the account now and then, and open the wolf at its line.
+function serialTick(final){
+  if (!tracker || !serialNow) return;
+  const {code, n} = serialNow, snap = tracker.snapshot();
+  const prose = serialUnits(serialData.codes[code].serial, n);
+  const done = prose.length > 0 && prose.every(u => snap.seen.includes(u.id));
+  const was = serialLocal(code, n);
+  const finishedAt = was.finishedAt || (done ? new Date().toISOString() : null);
+  const state = JSON.stringify([snap, finishedAt]);
+  serialKeep(code, n, {...snap, finishedAt});
+  if (snap.seen.includes(serialWolfId(serialData.codes[code].serial)) && !serialWolfKnown()){
+    try { localStorage.setItem("serial-wolf", "1"); } catch (e) { /* not kept */ }
+    serialMarkWolf();
+  }
+  if (state !== lastSent && (final === true || performance.now() - lastPush > 4000)){
+    lastSent = state;
+    lastPush = performance.now();
+    serialProgress(code, n, {...snap, finishedAt});
+  }
+}
+
+// "Continue where I left off": the furthest block read in this installment, if it is on the page and not the top.
+function serialResumeBlock(code, n){
+  const mark = serialLocal(code, n).highWater;
+  if (!mark) return null;
+  const [f, b] = mark.split(":");
+  const el = document.querySelector(`.reading .rbody [data-f="${f}"][data-b="${b}"]`);
+  return el && el.previousElementSibling ? el : null;
+}
+
+function serialStatsText(){
+  const {code, n} = serialNow, c = serialData.codes[code], m = serialData.memberships.find(x => x.code === code);
+  const all = SERIALS[c.serial].installments.map((_, i) => serialUnits(c.serial, i + 1));
+  const seen = new Set();
+  all.forEach((_, i) => (serialLocal(code, i + 1).seen || []).forEach(id => seen.add(id)));
+  if (tracker) tracker.snapshot().seen.forEach(id => seen.add(id));
+  const st = progressStats({seen: [...seen]}, all, n);
+  const pace = all.map((_, i) => paceDays(serialLocal(code, i + 1).finishedAt, releaseOf(m, c, i + 1)))
+    .map((d, i) => d === null ? null : `installment ${i + 1} in ${d} day${d === 1 ? "" : "s"}`).filter(Boolean);
+  return `${st.storyPct}% of the story read · ${st.installmentPct}% of this installment`
+    + (pace.length ? ` · finished ${pace.join(", ")}` : "");
+}
+
+// /account.js loads after the page and says when it has the session, and again whenever someone signs in or out.
+document.addEventListener("accountready", serialBoot);
+document.addEventListener("accountchange", serialBoot);
+serialBoot();
+
+// ---- reading progress --------------------------------------------------------------------------------
+// A block counts as read once it has been on screen, in a visible tab, for DWELL_MS in one visit. One number, to be
+// settled by trying it against real reading: the raw view events are kept on this device for that (serialLogView).
+const DWELL_MS = 1500;
+
+// `now` is a clock in milliseconds, passed in so a check can run time forwards. Ids are "folio:block".
+function createTracker({dwellMs, now}){
+  const accum = new Map(), since = new Map(), inView = new Set(), seen = new Set();
+  let hidden = false, mark = null;
+  const order = id => id.split(":").map(Number);
+  const later = (a, b) => { const [fa, ba] = order(a), [fb, bb] = order(b); return fa > fb || (fa === fb && ba > bb); };
+  const sorted = ids => [...ids].sort((a, b) => later(a, b) ? 1 : -1);
+  const settle = id => { if (since.has(id)){ accum.set(id, (accum.get(id) || 0) + now() - since.get(id)); since.delete(id); } };
+  const read = id => { seen.add(id); if (mark === null || later(id, mark)) mark = id; };
+  const check = id => { if ((accum.get(id) || 0) >= dwellMs) read(id); };
+  return {
+    enter: id => { inView.add(id); if (!hidden && !since.has(id)) since.set(id, now()); },
+    leave: id => { inView.delete(id); settle(id); check(id); accum.delete(id); },      // each visit starts again: glances do not add up
+    hide: () => { hidden = true; inView.forEach(settle); },
+    show: () => { hidden = false; inView.forEach(id => since.set(id, now())); },
+    restore: saved => {
+      (saved.seen || []).forEach(id => seen.add(id));
+      if (saved.highWater && (mark === null || later(saved.highWater, mark))) mark = saved.highWater;
+    },
+    snapshot: () => {
+      inView.forEach(id => { if (since.has(id)){ settle(id); since.set(id, now()); } check(id); });
+      return {seen: sorted(seen), highWater: mark};
+    },
+  };
+}
+
+// units: for each installment, its prose blocks as [{id, words}]. Words, not blocks, so a long paragraph counts for more.
+function progressStats(snap, units, current){
+  const seen = new Set(snap.seen);
+  const words = list => list.reduce((n, u) => n + u.words, 0);
+  const read = list => words(list.filter(u => seen.has(u.id)));
+  const all = units.flat(), mine = units[current - 1] || [];
+  const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+  return {storyPct: pct(read(all), words(all)), installmentPct: pct(read(mine), words(mine))};
+}
+
+// Whole days from the day an installment came out to the moment it was finished.
+function paceDays(finishedAt, release){
+  if (!finishedAt) return null;
+  return Math.floor((new Date(finishedAt) - dateOf(release)) / 864e5);
+}
+
+// An installment's prose blocks, laid out the way the reader lays them out.
+const unitsKept = {};
+function serialUnits(serial, n){
+  const key = serial + "/" + n;
+  if (unitsKept[key]) return unitsKept[key];
+  const r = serialRange(serial, n);
+  if (!r || !hydrated) return [];
+  const was = serialCut;
+  serialCut = {code: r.story, start: r.start, end: r.end};
+  const items = storyBlocks(readable(r.story)) || [];
+  serialCut = was;
+  return unitsKept[key] = items.filter(it => !it.kind)
+    .map(it => ({id: `${it.f}:${it.bi}`, words: it.text.split(/\s+/).length}));
+}
+
+// The line that opens the wolf: the end of installment one, "the footprints of a gigantic hound".
+const serialWolfId = (serial = "hound") => `${SERIALS[serial].wolf.f}:${SERIALS[serial].wolf.b}`;
+// ---- serials: annotations, reactions and the wolf ---------------------------------------------
+// The first half is decisions, kept pure for web/checks/serial.js; the second draws them (below).
+
+const SERIAL_GLYPH = {star: "⭐", heart: "❤️", diamond: "🔹", shaka: "🤙", down: "👎", wolf: "🐺"};
+const SERIAL_FIVE = ["star", "heart", "diamond", "shaka", "down"];
+
+// Comments as threads: roots in the order of the text, each with its replies by time. A withdrawn comment keeps
+// its place and its replies. "Hide others" leaves only what the reader wrote themselves.
+function serialThreads(rows, me, hideOthers){
+  const kept = hideOthers ? rows.filter(r => r.user_id === me) : rows;
+  const have = new Set(kept.map(r => r.id));
+  const at = r => (r.anchor && +r.anchor.f1) || 0;
+  const byTime = (a, b) => a.created_at.localeCompare(b.created_at);
+  return kept.filter(r => !r.parent || (!hideOthers && !have.has(r.parent)))
+    .sort((a, b) => at(a) - at(b) || byTime(a, b))
+    .map(root => ({root, replies: kept.filter(r => r.parent === root.id).sort(byTime)}));
+}
+
+// What can be given: the five on a comment, and on a passage the wolf too once the reader has earned it.
+const serialPalette = (kind, wolf) => kind === "passage" && wolf ? [...SERIAL_FIVE, "wolf"] : SERIAL_FIVE.slice();
+
+// Everyone's reactions to one thing: the count of each, the reader's own, and a comment's score and wolf badge.
+function serialTally(rows, kind, target, me){
+  const mine = rows.filter(r => r.target_kind === kind && r.target === target);
+  const counts = {};
+  mine.forEach(r => { counts[r.emoji] = (counts[r.emoji] || 0) + 1; });
+  const own = mine.find(r => r.user_id === me);
+  const score = commentScore(mine.map(r => r.emoji));
+  return {counts, mine: own ? own.emoji : null, score, badge: kind === "comment" && hasWolfBadge(score)};
+}
+
+// The passages that have been reacted to, in the order of the text, with who gave what. A passage's target is
+// "<first folio>:<last folio>:<opening words>:<closing words>", the same words a spot link carries.
+function serialPassageTargets(reactions, me){
+  const seen = new Map();
+  reactions.filter(r => r.target_kind === "passage").forEach(r => {
+    if (!seen.has(r.target)){
+      const [f1, f2, start, end] = r.target.split(":");
+      seen.set(r.target, {target: r.target, f1: +f1, f2: +f2, start, end, counts: {}, mine: null});
+    }
+    const t = seen.get(r.target);
+    t.counts[r.emoji] = (t.counts[r.emoji] || 0) + 1;
+    if (r.user_id === me) t.mine = r.emoji;
+  });
+  return [...seen.values()].sort((a, b) => a.f1 - b.f1);
+}
+
+// What the group panel says, from cohort_stats: nulls are figures the server held back for want of three readers.
+function serialGroupSummary(stats, n){
+  if (!stats) return {finished: null, issue: null, chapters: {}};
+  const ratings = stats.ratings || {}, chapters = {};
+  Object.keys(ratings).forEach(k => { if (k.startsWith("chapter:")) chapters[k.slice(8)] = ratings[k]; });
+  const done = (stats.finished || {})[n] || 0;
+  return {finished: stats.members == null ? null : `${done} of ${stats.members} readers have finished installment ${n}`,
+          issue: ratings["issue:" + n] === undefined ? null : ratings["issue:" + n], chapters};
+}
+
+// A comment's text as plain parts and links: only http(s) addresses become links, so nothing else is ever clickable.
+function serialLinkParts(text){
+  const parts = [];
+  let last = 0;
+  for (const m of text.matchAll(/https?:\/\/[^\s<>"']+/g)){
+    const url = m[0].replace(/[.,;:!?)]+$/, "");
+    if (m.index > last) parts.push({text: text.slice(last, m.index)});
+    parts.push({text: url, url});
+    last = m.index + url.length;
+  }
+  if (last < text.length) parts.push({text: text.slice(last)});
+  return parts.length ? parts : [{text}];
+}
+
+// ---- drawing them ---------------------------------------------------------------------------------------
+// The installment's comments and reactions are fetched when it opens and again after anything the reader writes.
+// Row-level security decides what comes back: other readers' notes only from installments this reader has unlocked.
+let notesState = {rows: [], reactions: [], mine: [], stats: null};
+const HIDE_KEY = "serial-hide-others";
+const hidingOthers = () => { try { return localStorage.getItem(HIDE_KEY) === "1"; } catch (e) { return false; } };
+const meId = () => { const u = window.Account && window.Account.user(); return u ? u.id : null; };
+const passageTarget = spot => `${spot.f1}:${spot.f2}:${spot.start}:${spot.end}`;
+
+async function serialNotesLoad(){
+  if (!serialNow) return;
+  const {code, n} = serialNow;
+  const [a, r, mine, st] = await Promise.all([serialAnnotations(code, n), serialReactions(code, n), serialMyRatings(code), serialStats(code)]);
+  if (!serialNow || serialNow.code !== code || serialNow.n !== n) return;       // moved on while it loaded
+  notesState = {rows: a.ok ? a.data : [], reactions: r.ok ? r.data : [], mine: mine.ok ? mine.data : [], stats: st.ok ? st.data : null};
+  serialNotesPaint();
+}
+
+function serialNotesClear(){
+  notesState = {rows: [], reactions: [], mine: [], stats: null};
+  if (HIGHLIGHTS) ["serial-mine", "serial-group", "serial-under"].forEach(k => CSS.highlights.delete(k));
+  document.querySelectorAll(".serialnotes").forEach(e => e.remove());
+}
+
+// The words each note was made on, lit: the reader's in one colour, the group's in another, underlines as lines.
+function serialNotesPaint(){
+  const body = document.querySelector(".reading .rbody");
+  if (!body || !serialNow) return;
+  const me = meId(), shown = hidingOthers() ? notesState.rows.filter(r => r.user_id === me) : notesState.rows;
+  const sets = {"serial-mine": [], "serial-group": [], "serial-under": []};
+  if (HIGHLIGHTS) shown.forEach(r => {
+    if (r.withdrawn || r.parent || !r.anchor || !r.anchor.start) return;
+    const range = findSpot(body, r.anchor);
+    if (range) sets[r.anchor.style === "underline" ? "serial-under" : r.user_id === me ? "serial-mine" : "serial-group"].push(range);
+  });
+  if (HIGHLIGHTS) for (const [k, v] of Object.entries(sets)) v.length ? CSS.highlights.set(k, new Highlight(...v)) : CSS.highlights.delete(k);
+  drawNotesPanel(body);
+}
+
+const glyphButton = (emoji, count, on, label, onClick) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "serialreact" + (on ? " on" : "");
+  b.textContent = SERIAL_GLYPH[emoji] + (count ? " " + count : "");
+  b.setAttribute("aria-label", label);
+  b.setAttribute("aria-pressed", String(on));
+  b.addEventListener("click", onClick);
+  return b;
+};
+
+// Give a reaction, change it, or take it back by giving the same one again.
+async function serialReactTo(kind, target, emoji, mine){
+  const {code, n} = serialNow;
+  const res = emoji === mine ? await serialUnreact(code, kind, target) : await serialReact(code, n, kind, target, emoji);
+  if (res.signedOut) return window.Account.prompt("Sign in to react.");
+  if (res.error) return pageNotice(res.error);
+  serialNotesLoad();
+}
+
+function commentText(text){
+  const p = document.createElement("p");
+  serialLinkParts(text).forEach(part => {
+    if (!part.url) return p.appendChild(document.createTextNode(part.text));
+    const a = document.createElement("a");
+    a.href = part.url; a.textContent = part.text; a.rel = "noopener noreferrer nofollow"; a.target = "_blank";
+    p.appendChild(a);
+  });
+  return p;
+}
+
+function drawComment(row, me, isReply){
+  const box = document.createElement("div");
+  box.className = "serialcomment" + (isReply ? " reply" : "") + (row.visibility === "private" ? " private" : "");
+  const who = document.createElement("small");
+  who.textContent = (row.user_id === me ? "You" : "Reader " + row.user_id.slice(0, 4)) + (row.visibility === "private" ? " · private" : "");
+  box.appendChild(who);
+  if (row.withdrawn){
+    const w = document.createElement("p");
+    w.className = "withdrawn";
+    w.textContent = "comment withdrawn";
+    box.appendChild(w);
+    return box;
+  }
+  box.appendChild(commentText(row.comment));
+  const tally = serialTally(notesState.reactions, "comment", row.id, me);
+  const bar = document.createElement("div");
+  bar.className = "serialreacts";
+  serialPalette("comment", false).forEach(e => bar.appendChild(
+    glyphButton(e, tally.counts[e], tally.mine === e, `React ${e}`, () => serialReactTo("comment", row.id, e, tally.mine))));
+  if (tally.badge){
+    const wolf = document.createElement("span");
+    wolf.className = "serialwolf";
+    wolf.textContent = SERIAL_GLYPH.wolf;
+    wolf.title = "The group's favourite";
+    wolf.setAttribute("role", "img");
+    wolf.setAttribute("aria-label", "A comment the group rates highly");
+    bar.appendChild(wolf);
+  }
+  const reply = document.createElement("button");
+  reply.type = "button"; reply.className = "serialquiet"; reply.textContent = "Reply";
+  reply.addEventListener("click", () => composeNote({parent: row.parent || row.id, anchor: row.anchor, visibility: row.visibility, title: "Reply"}));
+  bar.appendChild(reply);
+  if (row.user_id === me){
+    const gone = document.createElement("button");
+    gone.type = "button"; gone.className = "serialquiet"; gone.textContent = "Withdraw";
+    gone.addEventListener("click", async () => {
+      const res = await serialWithdraw(row.id);
+      if (res.error) return pageNotice(res.error);
+      serialNotesLoad();
+    });
+    bar.appendChild(gone);
+  }
+  box.appendChild(bar);
+  return box;
+}
+
+function drawNotesPanel(body){
+  document.querySelectorAll(".serialnotes").forEach(e => e.remove());
+  const me = meId();
+  const panel = document.createElement("aside");
+  panel.className = "serialnotes";
+  panel.setAttribute("aria-label", "Comments on this installment");
+  const head = document.createElement("label");
+  head.className = "serialhide";
+  const box = document.createElement("input");
+  box.type = "checkbox"; box.checked = hidingOthers();
+  box.addEventListener("change", () => { try { localStorage.setItem(HIDE_KEY, box.checked ? "1" : "0"); } catch (e) { /* not kept */ } serialNotesPaint(); });
+  head.append(box, document.createTextNode(" Hide others’ comments"));
+  panel.appendChild(head);
+  const threads = serialThreads(notesState.rows, me, hidingOthers());
+  if (!threads.length){
+    const none = document.createElement("p");
+    none.className = "serialnone";
+    none.textContent = "No comments yet. Select some words to highlight them, react, or comment.";
+    panel.appendChild(none);
+  }
+  threads.forEach(t => {
+    const th = document.createElement("div");
+    th.className = "serialthread";
+    const found = () => t.root.anchor && t.root.anchor.start ? findSpot(body, t.root.anchor) : null;
+    th.appendChild(drawComment(t.root, me, false));
+    if (found()) th.firstChild.addEventListener("click", ev => {
+      if (ev.target.closest("button, a")) return;
+      const range = found();
+      if (range) range.startContainer.parentElement.scrollIntoView({block: "center"});
+    });
+    t.replies.forEach(r => th.appendChild(drawComment(r, me, true)));
+    panel.appendChild(th);
+  });
+  const marked = serialPassageTargets(notesState.reactions, me);
+  if (marked.length){
+    const h = document.createElement("h3");
+    h.textContent = "Passage reactions";
+    panel.appendChild(h);
+    marked.forEach(t => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "serialmarked";
+      row.textContent = Object.entries(t.counts).map(([e, n]) => `${SERIAL_GLYPH[e]} ${n}`).join("  ") + "  \u201c" + t.start + "\u2026\u201d";
+      row.addEventListener("click", () => {
+        const range = findSpot(body, {f1: t.f1, f2: t.f2, start: t.start, end: t.end});
+        if (range) range.startContainer.parentElement.scrollIntoView({block: "center"});
+      });
+      panel.appendChild(row);
+    });
+  }
+  drawRatings(panel);
+  document.body.appendChild(panel);
+}
+
+// One to five stars for the installment and for each chapter in it, with the group's average where there are
+// enough ratings to show one. The reader's own stars show at once.
+function drawRatings(panel){
+  const {code, n} = serialNow, inst = SERIALS[serialData.codes[code].serial].installments[n - 1];
+  const sum = serialGroupSummary(notesState.stats, n);
+  const own = (kind, num) => (notesState.mine.find(r => r.kind === kind && r.n === num) || {}).stars || 0;
+  const h = document.createElement("h3");
+  h.textContent = "Ratings";
+  panel.appendChild(h);
+  const row = (label, kind, num, avg) => {
+    const line = document.createElement("div");
+    line.className = "serialstars";
+    const name = document.createElement("span");
+    name.textContent = label;
+    line.appendChild(name);
+    for (let k = 1; k <= 5; k++){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = k <= own(kind, num) ? "\u2605" : "\u2606";
+      b.setAttribute("aria-label", `${k} star${k > 1 ? "s" : ""} for ${label}`);
+      b.addEventListener("click", async () => {
+        const res = await serialRate(code, n, kind, num, k);
+        if (res.signedOut) return window.Account.prompt("Sign in to rate.");
+        if (res.error) return pageNotice(res.error);
+        serialNotesLoad();
+      });
+      line.appendChild(b);
+    }
+    const group = document.createElement("small");
+    group.textContent = avg === null || avg === undefined ? "not enough ratings yet" : `group ${avg.toFixed(1)}`;
+    line.appendChild(group);
+    panel.appendChild(line);
+  };
+  row(`installment ${n}`, "issue", n, sum.issue);
+  inst.chapters.forEach(c => row(`chapter ${c}`, "chapter", c, sum.chapters[c]));
+  if (sum.finished){
+    const done = document.createElement("p");
+    done.className = "serialnone";
+    done.textContent = sum.finished;
+    panel.appendChild(done);
+  }
+}
+
+// A new comment on the words just selected, or a reply: plain text, for the group or just the reader.
+function composeNote({anchor, parent = null, visibility = "group", title = "Comment"}){
+  if (!meId()) return window.Account.prompt("Sign in to comment.");
+  serialDialog(dlg => {
+    const form = document.createElement("form");
+    form.method = "dialog";
+    const h = document.createElement("h2");
+    h.textContent = title;
+    form.appendChild(h);
+    const text = document.createElement("textarea");
+    text.rows = 4; text.maxLength = 2000; text.className = "serialtext";
+    text.setAttribute("aria-label", "Your comment");
+    text.placeholder = parent ? "Your reply" : "Your comment (optional — the words are marked either way)";
+    form.appendChild(text);
+    const row = (name, options, chosen) => {
+      const f = document.createElement("fieldset");
+      f.className = "serialsub";
+      options.forEach(([v, label]) => {
+        const l = document.createElement("label");
+        l.className = "serialway";
+        const i = document.createElement("input");
+        i.type = "radio"; i.name = name; i.value = v; i.checked = v === chosen;
+        l.append(i, document.createTextNode(label));
+        f.appendChild(l);
+      });
+      form.appendChild(f);
+    };
+    if (!parent) row("style", [["highlight", "Highlight"], ["underline", "Underline"]], "highlight");
+    row("visibility", [["group", "Share with everyone on this reading"], ["private", "Only me"]], visibility);
+    const say = document.createElement("p");
+    say.setAttribute("role", "status");
+    const go = document.createElement("button");
+    go.type = "submit"; go.textContent = "Save";
+    form.append(say, go);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const {code, n} = serialNow;
+      if (parent && !text.value.trim()){ say.textContent = "A reply needs some words."; return; }
+      go.disabled = true;
+      const style = parent ? undefined : form.elements.style.value;
+      const res = await serialAnnotate({code, installment: n, anchor: {...anchor, ...(style ? {style} : {})},
+        comment: text.value, visibility: form.elements.visibility.value, parent});
+      if (res.signedOut){ dlg.close(); return window.Account.prompt("Sign in to comment."); }
+      if (res.error){ say.textContent = res.error; go.disabled = false; return; }
+      dlg.close();
+      serialNotesLoad();
+    });
+    dlg.appendChild(form);
+    setTimeout(() => text.focus(), 0);
+  });
+}
+
+// ---- what the selection popup offers inside a serial ------------------------------------------------------------
+const serialTools = () => Boolean(serialNow) && Boolean(meId());
+function serialPopHTML(){
+  return `<div class="spserial" hidden><div class="spreacts"></div>`
+       + `<button type="button" class="spnote">Highlight or comment</button></div>`;
+}
+function serialPopShow(pop){
+  const box = pop.querySelector(".spserial"), on = serialTools();
+  box.hidden = !on;
+  if (!on) return;
+  const row = box.querySelector(".spreacts");
+  row.textContent = "";
+  serialPalette("passage", serialWolfKnown()).forEach(e => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "spreact"; b.dataset.emoji = e;
+    b.textContent = SERIAL_GLYPH[e];
+    b.setAttribute("aria-label", `React ${e} to the passage`);
+    row.appendChild(b);
+  });
+}
+// Returns true when the click was one of ours; anything else (Copy, the bookmark) is left to selpop.js untouched.
+// The selection is read now, before a dialog takes the focus.
+function serialPopClick(button){
+  const note = button.classList.contains("spnote"), react = button.classList.contains("spreact");
+  if (!note && !react) return false;
+  const spot = spotHere();
+  if (!spot) return true;
+  if (note){ hideSelpop(); composeNote({anchor: spot}); return true; }
+  const target = passageTarget(spot), tally = serialTally(notesState.reactions, "passage", target, meId());
+  hideSelpop();
+  serialReactTo("passage", target, button.dataset.emoji, tally.mine);
+  return true;
+}
+// ---- serials: typing a code in, a disabled reading, and the admin's panel ---------------------------------------
+// Row-level security decides who may do what here; the buttons only appear for the people it would let.
+
+const meNow = () => { const u = window.Account && window.Account.user(); return u || null; };
+
+// A disabled reading is not shown to its readers: they land on the story's first page with a note instead.
+async function serialDisabled(code){
+  const c = serialData && serialData.codes[code];
+  const story = c && SERIALS[c.serial] ? SERIALS[c.serial].story : "HOUN";
+  if (serialRoute(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* stays */ }
+  first = false;
+  for (let i = 0; i < 200 && !bootDone; i++) await new Promise(res => setTimeout(res, 50));
+  if (!concept()) await search(OPENING);               // the page's own search was skipped on the way in
+  if (!hydrated) await hydrate();
+  showEgs(false);
+  box.blur();
+  serialWhole = story;                                 // from its first page, not from the best match of the last search
+  pick(story);
+  pageNotice(SERIAL_DISABLED_NOTE);
+  for (const ms of [700, 1800]) setTimeout(() => { const b = document.querySelector(".reading .rbody"); if (b) b.scrollTo({top: 0, behavior: "instant"}); }, ms);
+}
+
+// ---- the small bar beside the account bar -------------------------------------------------------------------------
+function serialMountTools(){
+  document.querySelectorAll(".serialtools").forEach(e => e.remove());
+  const tools = document.createElement("div");
+  tools.className = "serialtools";
+  const add = (text, on) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    b.addEventListener("click", on);
+    tools.appendChild(b);
+    return b;
+  };
+  add("Join a reading", serialCodeDialog);
+  const account = document.querySelector(".acct");
+  account ? account.after(tools) : document.body.prepend(tools);
+  if (meNow()) serialIsAdmin().then(r => { if (r.ok && r.data === true) add("Reading admin", serialAdminDialog); });
+}
+
+// ---- typing a code ---------------------------------------------------------------------------------------------------
+function serialCodeDialog(){
+  if (!meNow()) return window.Account.prompt("Sign in to join a reading.");
+  serialDialog(dlg => {
+    const form = document.createElement("form");
+    form.method = "dialog";
+    const h = document.createElement("h2");
+    h.textContent = "Join a reading";
+    const ask = document.createElement("label");
+    ask.textContent = "Enter the code you were given";
+    const input = document.createElement("input");
+    input.type = "text"; input.maxLength = 40; input.autocomplete = "off"; input.spellcheck = false; input.className = "serialcode";
+    input.setAttribute("aria-label", "Reading code");
+    ask.appendChild(input);
+    const say = document.createElement("p");
+    say.setAttribute("role", "status");
+    const go = document.createElement("button");
+    go.type = "submit"; go.textContent = "Continue";
+    form.append(h, ask, say, go);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const code = serialCodeClean(input.value);
+      if (!code){ say.textContent = "A code is 3 to 40 letters, numbers or hyphens."; return; }
+      go.disabled = true;
+      const res = await serialCodeStatus(code);
+      go.disabled = false;
+      if (res.signedOut){ dlg.close(); return window.Account.prompt("Sign in to join a reading."); }
+      if (res.error){ say.textContent = serialJoinMessage(res.error); return; }
+      const st = res.data;
+      if (st.status === "unknown"){ say.textContent = "That code is not valid."; return; }
+      if (st.status === "disabled"){ say.textContent = SERIAL_DISABLED_NOTE; return; }
+      if (st.status === "closed"){ say.textContent = "This reading is closed to you."; return; }
+      dlg.close();
+      if (st.member){                                         // already in it: just go there
+        serialData = await serialLoad();
+        const top = serialData ? serialData.latest[st.code] || 0 : 0;
+        if (top) openSerial(st.code, top); else if (serialData) serialSoon(st.code);
+        return;
+      }
+      serialJoinDialog(st.code);
+    });
+    dlg.appendChild(form);
+    setTimeout(() => input.focus(), 0);
+  });
+}
+
+// ---- the admin's panel ---------------------------------------------------------------------------------------------------
+function serialAdminDialog(){
+  serialDialog(dlg => {
+    dlg.classList.add("serialadmin");
+    const draw = async note => {
+      const res = await serialAdminList();
+      dlg.textContent = "";
+      const h = document.createElement("h2");
+      h.textContent = "Reading admin";
+      dlg.appendChild(h);
+      const say = document.createElement("p");
+      say.setAttribute("role", "status");
+      say.textContent = note || (res.ok ? "" : serialJoinMessage(res.error || "Could not load the codes."));
+      dlg.appendChild(say);
+      const act = async (make, done) => { const r = await make(); draw(r.error ? r.error : done); };
+      if (res.ok) res.data.codes.forEach(c => {
+        const row = document.createElement("div");
+        row.className = "serialrow" + (c.revoked ? " off" : "");
+        const n = res.data.counts[c.code] || 0, dates = c.release_dates;
+        const info = document.createElement("span");
+        info.textContent = `${c.code} \u00b7 ${SERIALS[c.serial] ? SERIALS[c.serial].title : c.serial} \u00b7 ${dates[0]} to ${dates[dates.length - 1]}`
+          + ` \u00b7 ${n} reader${n === 1 ? "" : "s"} \u00b7 ${c.revoked ? "disabled" : "on"}`;
+        row.appendChild(info);
+        const tog = document.createElement("button");
+        tog.type = "button";
+        tog.textContent = c.revoked ? "Enable" : "Disable";
+        tog.addEventListener("click", () => act(() => serialAdminSetDisabled(c.code, !c.revoked), `${c.code} is ${c.revoked ? "on" : "disabled"}.`));
+        row.appendChild(tog);
+        const rm = document.createElement("button");
+        rm.type = "button";
+        rm.textContent = "Remove\u2026";
+        rm.disabled = !c.revoked;
+        rm.title = c.revoked ? "" : "Disable a code before removing it";
+        rm.addEventListener("click", () => {
+          const sure = document.createElement("form");
+          sure.className = "serialsure";
+          const t = document.createElement("input");
+          t.type = "text"; t.placeholder = `Type ${c.code} to remove it for good`; t.setAttribute("aria-label", "Type the code to confirm");
+          const b = document.createElement("button");
+          b.type = "submit"; b.textContent = "Remove for good";
+          sure.append(t, b);
+          sure.addEventListener("submit", ev => {
+            ev.preventDefault();
+            if (t.value.trim().toUpperCase() !== c.code.toUpperCase()){ t.value = ""; t.placeholder = "That is not the code"; return; }
+            act(() => serialAdminRemove(c.code), `${c.code} was removed, with its readers' comments and progress.`);
+          });
+          row.after(sure);
+          rm.disabled = true;
+          t.focus();
+        });
+        row.appendChild(rm);
+        dlg.appendChild(row);
+      });
+      const form = document.createElement("form");
+      form.className = "serialnew";
+      const title = document.createElement("h3");
+      title.textContent = "New code";
+      const code = document.createElement("input");
+      code.type = "text"; code.maxLength = 40; code.placeholder = "Code"; code.setAttribute("aria-label", "New code");
+      const make = document.createElement("button");
+      make.type = "button"; make.textContent = "Make one";
+      make.addEventListener("click", () => { code.value = serialMakeCode("HOUND", [...crypto.getRandomValues(new Uint8Array(6))]); });
+      const story = document.createElement("select");
+      story.setAttribute("aria-label", "Story");
+      Object.entries(SERIALS).forEach(([id, s]) => story.appendChild(new Option(s.title, id)));
+      const start = document.createElement("input");
+      start.type = "date"; start.value = new Date().toISOString().slice(0, 10); start.setAttribute("aria-label", "First installment on");
+      const create = document.createElement("button");
+      create.type = "submit"; create.textContent = "Create";
+      form.append(title, code, make, story, start, create);
+      form.addEventListener("submit", ev => {
+        ev.preventDefault();
+        act(() => serialAdminCreate({code: code.value, serial: story.value, start: start.value}), `${code.value.trim()} was created.`);
+      });
+      dlg.appendChild(form);
+      const close = document.createElement("button");
+      close.type = "button"; close.className = "serialquiet"; close.textContent = "Close";
+      close.addEventListener("click", () => dlg.close());
+      dlg.appendChild(close);
+    };
+    draw();
+  });
+}
 // ---- Get lost in the stories ---------------------------------------------------------------
 // A random note, of any kind, opened like a step of the arrows; offered by the tour (see tour.js). About one click in fifty goes to
 // the other canon instead; that page picks the note itself, since only it knows its own.
@@ -10147,6 +11474,8 @@ function pick(code){
   const was = document.activeElement;
   if (tourCodes.length) endTour(true);
   picked = code;
+  if (!serialCuts(code)) serialClosed();      // leaving a serial's story ends the serial
+  if (serialWhole !== code) serialWhole = null;
   if (linked && linked.code !== code) clearLinked();
   holdBack(code);
   previewSpot = null;
@@ -10297,7 +11626,7 @@ document.addEventListener("click", event => {
   // the time this runs and closest() finds nothing -- which read as a click on the
   // page behind, and shut the passage the reader had just asked to see more of.
   if (!event.target.isConnected) return;
-  if (event.target.closest(".reading, .hlpop, .copytoast, .copyview, .articleview, .card, .srow, .simplexline, .seg, .controls, .termkey, .termoff, .theming")) return;
+  if (event.target.closest(".reading, .hlpop, .copytoast, .copyview, .articleview, .card, .srow, .simplexline, .seg, .controls, .termkey, .termoff, .selpop, .serialbar, .serialstats, .serialnotes, .serialdlg, .theming")) return;
   pick(null);
 });
 
@@ -10369,7 +11698,7 @@ function placeSpot(){
 }
 
 function startSpotlight(){
-  if (simplexOn) return false;                // simple mode has no coaching
+  if (simplexOn || serialQuiet()) return false;   // simple mode has no coaching, and nor does a serial
   if (spotting || !spotAllowed()) return false;
   document.querySelectorAll(".tourbox, .tourfold, .tourreset").forEach(el => el.remove());
   showEgs(true);                       // the options open, so the reader sees the shapes
@@ -10504,7 +11833,7 @@ function reason(hit){
 // offering it: their answer to "don't show this again" is theirs to keep, so the box
 // comes back with it as they left it rather than quietly forgotten.
 function startTour(asked){
-  if (simplexOn) return;                      // simple mode draws none of this
+  if (simplexOn || serialQuiet()) return;                      // simple mode draws none of this
   // reachable from the folded mark and from closing a passage, either of which can
   // happen while a new search is still in flight and there is nothing yet to point at
   if (!concept() || !concept().ranked.length) return;
@@ -11524,6 +12853,7 @@ function speak(){
   holding = false;
   drawResults();
   if (!active || !active.ranked.length) return;
+  if (serialQuiet()){ first = false; return; }
   if (first && startSpotlight()){ first = false; return; }
   first = false;
   const only = theOnlyOne();
@@ -11585,9 +12915,10 @@ async function search(query, options){
     : `${(active.phrase ? active.phrase.words.length : active.of) || 1} term(s) compared`
       + ` against ${CANON_WORDS.toLocaleString()} words of printed prose,`
       + ` in ${Math.round(performance.now() - t0)}ms`;
-  picked = null; hovered = null; isolated = null;
+  // a search that lands closes the open passage, except an installment of a serial, which is left by its own bar
+  if (!serialNow){ picked = null; document.querySelector(".scroller").classList.remove("picked"); }
+  hovered = null; isolated = null;
   revealed = new Set();
-  document.querySelector(".scroller").classList.remove("picked");
   drawResults(); drawChart();
   offerFeedback();
   document.querySelectorAll(".tourfold, .tourreset").forEach(el => el.remove());
@@ -11602,6 +12933,7 @@ async function search(query, options){
     return void pick(active.jumped.code);
   }
   if (!active.ranked.length) return;
+  if (serialQuiet()){ first = false; return; }
   if (first && startSpotlight()){ first = false; return; }
   first = false;
   const only = theOnlyOne();
@@ -11871,11 +13203,13 @@ try {
 } catch (e) { again = null; }
 if (again){ box.value = again.q || ""; first = false; }   // not the page's own first search: no tour
 const lostAt = arrivedLost();            // sent here, or back, by Get lost in the stories
-if (lostAt){ first = false; arriveLost(lostAt); }
+if (lostAt){ first = false; arriveLost(lostAt); bootDone = true; }
 else openLinked().then(async was => {
-  if (was) return;
+  // a serial link is a destination of its own: no search is run for it, and none is needed to open it
+  if (was || serialRoute(location.hash)){ bootDone = true; return; }
   await search(again ? box.value : OPENING);
   if (again && again.story && active && active.ranked.some(r => r.code === again.story)) pick(again.story);
+  bootDone = true;
 });
 // The page opens ready to be typed on: what is in the box is selected, so the first
 // letter replaces it. Not on a phone, where focus raises the keyboard over the page.
@@ -11933,7 +13267,7 @@ window.keepPlace = () => {
 
 // "Latest update Oct 18 at 11:49 pm", in the reader's own time zone: the commit this build came from.
 (() => {
-  const when = new Date("2026-10-20T11:57:41-05:00"), el = document.getElementById("updated");
+  const when = new Date("2026-10-22T01:10:32-05:00"), el = document.getElementById("updated");
   if (!el || isNaN(when)) return;
   const day = when.toLocaleDateString("en-US", {month: "short", day: "numeric"});
   const time = when.toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit"}).replace(/\s/g, " ").toLowerCase();
