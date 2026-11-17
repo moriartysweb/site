@@ -206,6 +206,10 @@ h2{font:600 19px/1.2 "Barlow Condensed",sans-serif;letter-spacing:.04em;text-tra
    for the field and piled the header on top of itself. */
 .tail{flex:0 0 auto;position:relative;display:flex;flex-direction:column;
   align-items:flex-end;justify-content:center;gap:0;line-height:1.1}
+/* the highlights gear, just left of the style */
+.hlhome{display:flex;align-items:center;gap:8px}
+.hlgear{margin:0;padding:0 2px;border:0;background:none;cursor:pointer;text-decoration:none;font:400 15px/1 "IBM Plex Sans",sans-serif;color:var(--ink-quiet)}
+.hlgear:hover,.hlgear[aria-expanded="true"]{color:var(--ink)}
 .theming{display:block;font:400 11px "IBM Plex Sans",sans-serif;color:var(--ink-quiet)}
 .theming > summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:5px;
   padding:0;line-height:1.1;user-select:none}
@@ -346,10 +350,12 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
    magnifier, and the middle to the passage, so this corner is the one left free. */
 /* above the arrows, which are drawn over the whole window at 14, and above the tour's
    corner at 16 -- the two never share a corner, so nothing is lost by clearing both */
-.cites{position:fixed;left:20px;bottom:20px;z-index:17;
-  width:min(560px,calc(100vw - 40px));border-radius:9px;
-  background:var(--panel);border:1px solid var(--rule);
-  box-shadow:0 10px 26px rgba(10,14,30,.22)}
+/* docked in the window's corner as just its count; pointed at, it offers copy all; opened, it is the whole list */
+.cites{position:fixed;left:0;bottom:0;z-index:17;
+  width:max-content;border-radius:0 9px 0 0;
+  background:var(--panel);border:1px solid var(--rule);border-width:1px 1px 0 0}
+.cites[open]{width:min(560px,calc(100vw - 90px));box-shadow:0 -6px 20px rgba(10,14,30,.18)}
+.cites:not(:hover):not(:has(:focus-visible)):not([open]) .citeall{display:none}
 .cites[hidden]{display:none}
 .cites > summary{display:flex;align-items:center;gap:9px;padding:8px 11px;cursor:pointer;
   font:500 12px "IBM Plex Sans",sans-serif;color:var(--ink-soft);list-style:none}
@@ -803,6 +809,11 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 .illus{margin:var(--line) 0;max-width:var(--column,var(--measure));text-align:center}
 .illus img,.mfig img{display:block;height:auto;max-width:100%;border-radius:2px}
 .illus img{margin:0 auto;width:min(300px,100%)}
+/* A halftone is toned to the style: crisp ink on white for legibility; warm and soft for the
+   authentic page, its paper taking the page's own colour. A colour picture is left as it is. */
+.illus img:not(.colour),.mfig img:not(.colour){filter:grayscale(1) contrast(1.3) brightness(1.08)}
+.reading.authentic .illus img:not(.colour),.reading.authentic .mfig img:not(.colour){
+  filter:grayscale(1) contrast(.9) brightness(1.15);mix-blend-mode:multiply}
 .illus figcaption,.mfig figcaption{display:grid;gap:2px;margin-top:6px}
 .illus .cap{font:italic 400 15px/1.35 "EB Garamond",Lora,Georgia,serif;color:var(--ink)}
 .mfig .cap{font-style:italic}
@@ -815,8 +826,10 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
   .mcol{position:static;width:auto;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:6px 0 var(--line)}
   .mfig{width:150px}
 }
-.reading.noted .mfigs{height:auto}
-.reading.noted .mcol{position:static;width:auto;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:6px 0 var(--line)}
+/* a page has no margin to spare: the picture goes under its paragraph */
+.reading.noted .mfigs,.page .mfigs{height:auto}
+.page .mfig{width:150px}
+.reading.noted .mcol,.page .mcol{position:static;width:auto;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:6px 0 var(--line)}
 .reading.noted .mfig{width:150px}
 /* a letter's dateline, address or signature: its own line, set in from the margin as
    the press sets it, and never mistaken for a title */
@@ -1074,8 +1087,14 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
   /* the head's controls take rows of their own, or flex squeezes the card to a letter's width */
   .rhead{flex-wrap:wrap}
   .reading.noted .rwrap{--gutter:1px}
+  /* raised over the text, so it is tinted and shadowed apart from it */
   .notepane{position:absolute;left:0;right:0;bottom:0;z-index:4;flex:0 0 auto;
-    max-height:52%;border-left:0;border-top:1px solid var(--rule);background:var(--panel)}
+    max-height:52%;border-left:0;border-top:1px solid var(--rule);
+    border-radius:12px 12px 0 0;--sheet:var(--rule-soft);background:var(--sheet);
+    box-shadow:0 -8px 22px rgba(10,14,30,.18)}
+  .reading.authentic .notepane{--sheet:color-mix(in srgb,var(--aged-ink) 8%,var(--aged))}
+  .notepane.spills::after,.reading.authentic .notepane.spills::after{
+    background:linear-gradient(to bottom,transparent,var(--sheet) 75%)}
 }
 
 /* The slider: off, then each band of rarity in turn. A range because the stops are
@@ -1120,7 +1139,6 @@ header:has(.filters:not([hidden])) .pickers{margin-bottom:0}
 .hlpop .rare::after{content:"";position:absolute;top:.12em;right:-.3em;z-index:-1;width:.56em;height:.56em;
   background:var(--note);-webkit-mask:var(--book) center/contain no-repeat;mask:var(--book) center/contain no-repeat}
 .hlpop .vary.gap{padding-right:.3em}
-:root.simplex:not(.handheld) .hlpick{display:none}
 
 /* A hit switched off keeps its place -- the scroll track and the arrow keys walk marks --
    and loses only its paint. */
@@ -1998,8 +2016,15 @@ header:has(.simplexline) .pickers{margin-top:26px}
   border-radius:4px;padding:2px 7px;cursor:pointer}
 .pagespick[aria-checked="true"],.sizepick[aria-checked="true"]{border-color:var(--ink);color:var(--ink)}
 .pagespick:disabled{opacity:.45;cursor:not-allowed}
+/* drawn as a leaf and an open book: the one in use lit, the other greyed until chosen */
+.pagespick{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;color:var(--ink-faint)}
+.pagespick svg{display:block}
+.pagespick[aria-checked="true"]{color:var(--hit-strong);border-color:var(--hit-strong);background:var(--hit-soft)}
+.pagespick:not([aria-checked="true"]):not(:disabled):hover{color:var(--ink-soft)}
 .calibrate{border:0;text-decoration:underline;color:var(--ink-quiet)}
 .reading:not(.twopages) .sizeway{display:none}
+/* at the book's own size a picture pushes the text off its page */
+.reading.lifesize :is(.plate,.illus,.mfigs){display:none}
 /* over the text, like the style list, so the head keeps its height */
 .calib{position:absolute;top:calc(100% + 6px);right:0;z-index:30;display:flex;align-items:center;gap:14px;
   padding:12px 14px;max-width:calc(100vw - 80px);background:var(--panel);border:1px solid var(--rule);
@@ -2079,11 +2104,24 @@ header:has(.simplexline) .pickers{margin-top:26px}
 /* the panel is nearly the screen already: nothing to grow into */
 :root.handheld .grow{display:none}
 /* the gear, where the fill-the-screen button would have been */
-:root.handheld .hlpick{position:absolute;top:8px;right:60px;width:44px;height:44px;margin:0;padding:0;
+:root.handheld .reading .hlpick{position:absolute;top:8px;right:60px;width:44px;height:44px;margin:0;padding:0;
   border:1px solid var(--rule);border-radius:50%;background:var(--panel);color:var(--ink-soft);
   font-size:22px;line-height:1;text-decoration:none;display:flex;align-items:center;
   justify-content:center;z-index:4}
 :root.handheld .reading.authentic .hlpick{background:var(--aged)}
+/* On a phone the match arrows are a thumb's size, over the edge of the text; with no
+   match in the passage there is nothing to step to, and they are not there at all. */
+:root.handheld .reading .pageturn{width:56px;height:56px;font-size:26px;opacity:1;color:var(--ink);
+  background:color-mix(in srgb,var(--panel) 92%,transparent);border:2px solid var(--ink-quiet)}
+:root.handheld .reading .pageturn.up{top:58px}
+:root.handheld .reading:not(:has(.rbody mark)) .pageturn{display:none}
+/* standing on one word: its colour, the others' marks put out, and nothing over the arrows */
+:root.handheld .reading.stepping .pageturn{background:var(--stepsoft);border-color:var(--stepink)}
+:root.handheld .reading .pageturn[disabled]{background:var(--rule-soft);border-color:var(--rule);
+  color:var(--ink-faint);opacity:.7}
+.reading.stepping .rbody mark.offterm{background:none;box-shadow:none;outline:0}
+.reading.stepping .rbody mark.offterm::before,.reading.stepping .rbody mark.offterm::after{display:none}
+:root.handheld .reading .pageturn.down{bottom:72px}     /* clear of the envelope */
 .hlpop.sheet{left:0;right:0;bottom:0;top:auto;width:auto;max-height:84vh;
   border-radius:18px 18px 0 0;padding:4px 18px calc(18px + env(safe-area-inset-bottom));
   box-shadow:0 -10px 34px rgba(0,0,0,.45);z-index:70}
@@ -2141,6 +2179,25 @@ header:has(.simplexline) .pickers{margin-top:26px}
   color:inherit;font-size:26px;line-height:1;cursor:pointer}
 /* held sideways, the book is already open on two pages */
 @media (orientation: landscape){ .rotatehint{display:none} }
+
+/* A phone on its side has height for little else: the passage takes the whole screen,
+   the head a single line, and the find field goes. */
+@media (orientation: landscape) and (max-height: 540px){
+  :root.handheld .reading,:root.handheld .reading.twopages{top:0;width:100vw;max-height:100vh;border:0;border-radius:0;
+    padding:2px max(40px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left))}
+  @supports (height:100dvh){:root.handheld .reading{max-height:100dvh}}
+  :root.handheld .finder,:root.handheld .fbenv{display:none}
+  :root.handheld .reading .pageturn.up{top:6px}
+  :root.handheld .reading .pageturn.down{bottom:6px}
+  :root.handheld .rhead{padding-bottom:0;min-height:38px}
+  /* the head is one line; a tap on it brings back the publication and the settings */
+  :root.handheld .rhead .cite{margin:0;padding-right:52px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  :root.handheld .reading:not(.headopen) .cite .pub,:root.handheld .reading:not(.headopen) .hlpick{display:none}
+  :root.handheld .reading.headopen .rhead .cite{padding-right:96px;white-space:normal}
+  :root.handheld .reading .close{width:38px;height:38px;top:0;right:max(2px, env(safe-area-inset-right));font-size:24px}
+  :root.handheld .reading .hlpick{width:36px;height:36px;top:1px;right:calc(max(2px, env(safe-area-inset-right)) + 46px);font-size:19px}
+  :root.handheld .reading .close::after,:root.handheld .hlpick::after{content:"";position:absolute;inset:-4px}
+}
 footer{margin-top:26px;padding-top:13px;border-top:1px solid var(--rule);color:var(--ink-faint);font-size:12.5px;max-width:76ch}
 @media (max-width:760px){ .row{grid-template-columns:1fr;gap:6px} }
 
@@ -3338,9 +3395,10 @@ const anyVariants = () => Object.keys(COLLATED).length || Object.keys(BOOK_TYPOS
 // also where they are turned off. The rare words have their own dial (`noteLevel`). The
 // three for other printings start from what the Variants control last said, so a reader
 // who had variants on still sees them; a change to any of them keeps the control honest.
-const hl = {hits: true, find: true, numbers: true, autocopy: true, legends: true, favorites: true, magic: true, pagebadge: true,
-            bsj: false, ebsj: false,
-            printings: variantsOn, insertions: variantsOn, typos: variantsOn};
+// What a new reader starts with, which is what the feedback form measures a change against.
+const HL_DEFAULTS = {hits: true, find: true, numbers: true, autocopy: true, legends: true, favorites: true, magic: true,
+                     pagebadge: true, bsj: false, ebsj: false, printings: false, insertions: false, typos: false};
+const hl = {...HL_DEFAULTS, printings: variantsOn, insertions: variantsOn, typos: variantsOn};
 try { Object.assign(hl, JSON.parse(localStorage.getItem("highlights") || "{}")); }
 catch (e) { /* a private window, or storage refused: the defaults stand */ }
 variantsOn = hl.printings || hl.insertions || hl.typos;
@@ -5960,7 +6018,7 @@ if (illusShown && typeof Image === "function" && Object.keys(ILLUS).length){
   probe.src = Object.values(ILLUS)[0][0].src;
 }
 const illusFig = (g, cls) => `<figure class="${cls}"><a href="${g.page}" target="_blank" rel="noopener">`
-  + `<img src="${g.src}" width="${g.w}" height="${g.h}" alt="${esc(g.caption)}" loading="lazy"></a>`
+  + `<img${g.colour ? ` class="colour"` : ""} src="${g.src}" width="${g.w}" height="${g.h}" alt="${esc(g.caption)}" loading="lazy"></a>`
   + `<figcaption><span class="cap">${esc(g.caption)}</span>`
   + `<span class="credit">${esc(g.credit)}</span></figcaption></figure>`;
 // a frontispiece stands before the title, as the magazine faced the story's first page with it
@@ -6921,7 +6979,11 @@ function markOffsets(body){
 // were stops too, which meant a reader walking from one occurrence to the next stopped
 // at every folded stretch in between -- and on a long story there are more of those
 // than there are matches. A fold is something to click, not something to visit.
-const stopList = body => [...body.querySelectorAll("mark")];
+// Standing on one word (a tap on a phone), only that word's marks are stops.
+const stopList = body => {
+  const panel = body.closest && body.closest(".reading"), only = panel && panel.dataset.only;
+  return [...body.querySelectorAll("mark")].filter(m => !only || m.classList.contains(only));
+};
 // which stop the reader is on, forgotten whenever the passage is rebuilt beneath it
 let stopAt = null;
 
@@ -6969,6 +7031,7 @@ function showStop(panel, i){
   restStop(panel);
   stopAt = i;
   el.classList.add("onstop");
+  stepColour(panel, el);
   const top = body.getBoundingClientRect().top - body.scrollTop;
   const y = el.getBoundingClientRect().top - top;
   const most = body.scrollHeight - body.clientHeight;
@@ -7017,6 +7080,9 @@ function markTurns(panel){
   const up = panel && panel.querySelector(".pageturn.up");
   const down = panel && panel.querySelector(".pageturn.down");
   if (!body || !up || !down) return;
+  // the other words' marks are put out while the reader stands on one; kept here, so a redraw keeps it
+  const only = panel.dataset.only;
+  body.querySelectorAll("mark").forEach(m => m.classList.toggle("offterm", Boolean(only) && !m.classList.contains(only)));
   // while the finder is stepping in a round there is always somewhere to go
   const wrap = findWraps();
   up.disabled = nextStop(body, -1, wrap) === null;
@@ -7297,12 +7363,13 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"cf51c07"}`,
+  const lines = [`App: ${document.title}, build ${"efc7c53"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
-  // only what differs from this version's defaults: the other printings start off
+  // only what differs from a new reader's settings, and only switches this page has: Austen has no BSJ
   const mine = {...hl, rare: noteLevel > 0};
-  const changed = Object.entries(mine).filter(([k, v]) => v !== !["printings", "insertions", "typos"].includes(k))
+  const changed = Object.entries(mine)
+    .filter(([k, v]) => (DATA.bsjFile || (k !== "bsj" && k !== "ebsj")) && v !== (HL_DEFAULTS[k] ?? true))
     .map(([k, v]) => `${k} ${v ? "on" : "off"}`);
   lines.push(`Highlights changed: ${changed.join(", ") || "none"}`);
   const q = document.getElementById("q");
@@ -7366,6 +7433,24 @@ document.addEventListener("click", event => {
   // a click anywhere but the popover is the reader done with it
   if (!event.target.closest(".hlpop")) closeHighlights();
 });
+
+// The same key from the search page, by the style. Built afresh at each opening, so it says what the reader last set.
+{
+  const theming = document.getElementById("theming");
+  if (theming && theming.insertAdjacentHTML){
+    theming.insertAdjacentHTML("beforebegin", `<span class="hlhome"><button type="button" class="hlpick hlgear"`
+      + ` aria-expanded="false" aria-label="Show/hide highlights" title="Show/hide highlights">⚙</button></span>`);
+    theming.previousElementSibling.appendChild(theming);
+  }
+  document.addEventListener("click", event => {
+    const gear = event.target.closest && event.target.closest(".hlgear");
+    if (!gear || (gear.hlpop && !gear.hlpop.hidden)) return;
+    if (gear.hlpop) gear.hlpop.remove();
+    const made = document.createElement("div");
+    made.innerHTML = highlightsControl();
+    gear.hlpop = made.querySelector(".hlpop");
+  }, true);
+}
 
 document.addEventListener("change", event => {
   const box = event.target.closest(".hlswitch");
@@ -7549,6 +7634,9 @@ function closeNote(){
     panel.classList.remove("noted");
     const pane = panel.querySelector(".notepane");
     if (pane) pane.hidden = true;
+    // a memorable passage hides the definition line; whatever opens next wants it back
+    const def = panel.querySelector(".notedef");
+    if (def) def.hidden = false;
     const nav = panel.querySelector(".notenav");
     if (nav) nav.hidden = true;
     const picture = panel.querySelector(".noteimage");
@@ -8296,6 +8384,7 @@ function restFocus(panel){
   const field = panel.querySelector(".finder");
   if (field) field.value = "";
   panel.classList.remove("finding");
+  stepOnly(panel, null);
   markTurns(panel);
   homeAt = null;
   stopAt = null;
@@ -8476,8 +8565,8 @@ function reading(hit){
     styler.insertAdjacentHTML("afterend", RESET_BUTTON);
   }
   // simple mode's pages: one column, or the book as it lies open
-  // held upright, a phone shows one page: say that sideways it shows the book as it lies open
-  if (HANDHELD && simplexOn && GEOMETRY && pageable(hit) && !rotateHintOff())
+  // held upright, a tablet shows one page: say that sideways it shows the book as it lies open
+  if (TABLET && simplexOn && GEOMETRY && pageable(hit) && !rotateHintOff())
     el.querySelector(".rhead").appendChild(rotateHint());
   if (simplexOn && GEOMETRY){
     (el.querySelector(".sheetset") || el.querySelector(".rhead")).appendChild(pagesControl(hit));
@@ -8844,6 +8933,39 @@ document.addEventListener("mouseout", event => {
   if (arrow && !arrow.contains(event.relatedTarget)) arrow.classList.remove("hushed");
 });
 
+// On a phone, a tap on a matched word stands the reader on that word alone: the other words'
+// marks are put out, the arrows and a swipe (simplex.js) step through this word's matches only,
+// in its colour, until another tap on a match or anywhere in the text brings every word back.
+document.addEventListener("click", event => {
+  const body = HANDHELD && event.target.closest && event.target.closest(".reading .rbody");
+  if (!body) return;
+  const panel = body.closest(".reading"), mark = event.target.closest("mark");
+  const word = mark && !mark.dataset.note && !panel.dataset.only ? mark : null;     // a word with a note opens the note
+  restStop(panel);
+  stepOnly(panel, word);
+  if (!word) return markTurns(panel);
+  stopAt = stopList(body).indexOf(word);
+  word.classList.add("onstop");
+  stepColour(panel, word);
+  markTurns(panel);
+});
+
+// the word a mark stands for, by its colour: k0..k5, a named colour, or the finder's
+const termOf = mark => [...mark.classList].find(c => /^k\d+$/.test(c) || c.startsWith("n-") || c === "find") || "";
+
+function stepOnly(panel, word){
+  const only = word ? termOf(word) : "";
+  panel.classList.toggle("stepping", Boolean(only));
+  if (only) panel.dataset.only = only; else delete panel.dataset.only;
+}
+
+// the arrows wear the colour of the word they step through
+function stepColour(panel, word){
+  const ink = getComputedStyle(word).backgroundColor;
+  panel.style.setProperty("--stepsoft", ink);
+  panel.style.setProperty("--stepink", `color-mix(in srgb,${ink} 55%,#000)`);
+}
+
 // ---- the hint to turn the phone sideways ---------------------------------------------------
 // Shown when a passage opens, with the phone held upright and the book able to be shown as
 // two pages. Closing it hides it for this passage; ticking the box keeps it away for good.
@@ -8856,7 +8978,7 @@ function rotateHint(){
   const box = document.createElement("div");
   box.className = "rotatehint";
   box.setAttribute("role", "note");
-  box.innerHTML = `<span class="rhsay"><b aria-hidden="true">\u21BB</b> Turn your phone sideways to read two pages, as the book lies open.</span>`
+  box.innerHTML = `<span class="rhsay"><b aria-hidden="true">\u21BB</b> Turn your tablet sideways to read two pages, as the book lies open.</span>`
     + `<label class="rhnever"><input type="checkbox" class="rhbox"> Do not show this message again</label>`
     + `<button type="button" class="rhx" aria-label="Close this message">\u00D7</button>`;
   return box;
@@ -9029,6 +9151,7 @@ function offerFeedback(asked){
   feedbackEnvelope();
   if (feedbackCard || serialQuiet() || (asked !== true && feedbackCardClosed())) return;
   if (asked !== true){
+    if (HANDHELD && LANDSCAPE && LANDSCAPE.matches) return;     // a phone on its side keeps every line for the text
     latestReachable().then(ok => { if (ok && !feedbackCard && !serialQuiet()) showFeedbackCard(); });
     return;
   }
@@ -9048,14 +9171,22 @@ function showFeedbackCard(){
   feedbackEnvelope();
   stackFeedback();
   feedbackStack = setInterval(stackFeedback, 400);     // the tour's box comes, goes and moves
+  // turned on its side, the card folds into its envelope; not remembered, so upright it may come again
+  if (HANDHELD && LANDSCAPE && LANDSCAPE.addEventListener)
+    LANDSCAPE.addEventListener("change", e => { if (e.matches) foldFeedbackCard(); });
   feedbackCard.querySelector(".fbclose").addEventListener("click", () => {
     try { localStorage.setItem(FEEDBACK_CARD_KEY, "yes"); } catch (e) { /* it comes back next visit */ }
-    clearInterval(feedbackStack);
-    if (liftedBox){ liftedBox.style.bottom = ""; liftedBox = null; }
-    feedbackCard.remove();
-    feedbackCard = null;
-    feedbackEnvelope();
+    foldFeedbackCard();
   });
+}
+
+function foldFeedbackCard(){
+  if (!feedbackCard) return;
+  clearInterval(feedbackStack);
+  if (liftedBox){ liftedBox.style.bottom = ""; liftedBox = null; }
+  feedbackCard.remove();
+  feedbackCard = null;
+  feedbackEnvelope();
 }
 addEventListener("resize", stackFeedback);
 // What the folded stories are: for one word, those reached only by a related word.
@@ -9311,7 +9442,7 @@ const WELCOME = `<span class="welcome"><b>Welcome to the ${DOUBLEDAY ? "Canon Sl
       + `<span>It’s Canonical++, with all data stored locally and accessible offline.</span>`
     : `<span>Every word of Jane Austen’s novels and juvenilia, with all data stored locally and accessible offline.</span>`)
   + `<span>Type a word, a few words, or a phrase in “quotes”, then tap Search.</span>`
-  + `<span>Tap a result to read it; swipe left or right for the next. Turn the phone sideways for two pages.</span></span>`;
+  + `<span>Tap a result to read it; swipe left or right for the next. Tap a match to step through that word alone.</span></span>`;
 
 function drawResults(){
   const active = concept();
@@ -12135,16 +12266,20 @@ function sizeReading(){
 // entry of its own: Back pops it and closes the passage, and closing it any other way takes
 // the entry away again, so the reader is never one Back short of leaving.
 let readingPushed = false;
+// Our own Back lands later, as a popstate: until it does, a passage opened meanwhile is not shut by it.
+let backing = false;
 
 function holdBack(code){
+  if (backing) return;                         // the popstate settles it
   try {
     if (code && !readingPushed){ history.pushState({reading: true}, ""); readingPushed = true; }
-    else if (!code && readingPushed){ readingPushed = false; history.back(); }
-  } catch (e) { readingPushed = false; }       // a frame that will not take history
+    else if (!code && readingPushed){ readingPushed = false; backing = true; history.back(); }
+  } catch (e) { readingPushed = false; backing = false; }       // a frame that will not take history
 }
 
 addEventListener("popstate", () => {
   readingPushed = false;
+  if (backing){ backing = false; if (picked) holdBack(picked); return; }
   if (picked) pick(null);
 });
 
@@ -12895,6 +13030,12 @@ function simpleLeafing(){
 const HANDHELD = typeof navigator !== "undefined" && Boolean(
   (navigator.userAgentData && navigator.userAgentData.mobile)
   || /Mobi|iPhone|iPod/.test(navigator.userAgent || ""));
+// A tablet: a large handheld, or one that asks for the desktop site as an iPad (a Mac with a
+// touch screen) and an Android tablet (no "Mobile") do. It lays the book open on its side.
+const TABLET = typeof navigator !== "undefined" && (
+  (HANDHELD && typeof screen !== "undefined" && Math.min(screen.width, screen.height) >= 600)
+  || (/Macintosh/.test(navigator.userAgent || "") && navigator.maxTouchPoints > 0)     // no Mac has a touch screen; DevTools' iPad reports 1
+  || (/Android/.test(navigator.userAgent || "") && !/Mobile/.test(navigator.userAgent || "")));
 
 const readingSettings = () => ({leafing, mending, variantsOn, noteLevel, unfolded});
 const useSettings = s => { ({leafing, mending, variantsOn, noteLevel, unfolded} = s); };
@@ -12999,7 +13140,8 @@ function drawSwitch(){
   let kept = null;
   try { kept = localStorage.getItem("simplex"); } catch (e) { /* not kept */ }
   document.documentElement.classList.toggle("handheld", HANDHELD);
-  if (kept === "on" || HANDHELD) setSimplex(true, true);
+  // a tablet starts in simple mode, where the book can lie open, and keeps the reader's choice after
+  if (kept === "on" || HANDHELD || (TABLET && kept === null)) setSimplex(true, true);
   else drawSwitch();
 })();
 
@@ -13139,6 +13281,8 @@ document.addEventListener("touchend", event => {
   // pulled down from the head: the passage is put away, which is what a sheet does
   if (quick && fromHead && dy > 80 && dy > 1.6 * Math.abs(dx)){ pick(null); return; }
   if (!quick || Math.abs(dx) < 60 || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+  // standing on a match (reading.js), the swipe walks the matches instead
+  if (document.querySelector(".reading.stepping")) return stepMark(dx < 0 ? 1 : -1);
   const to = nextRow(dx < 0 ? 1 : -1);
   if (to) pick(to);
 }, {passive: true});
@@ -13339,15 +13483,21 @@ function spreadsHTML(chunks){
 }
 
 const UNPAGED = "This text was never printed in pages, so it has none to lay side by side.";
+// a leaf, and the book lying open
+const ONE_PAGE = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">`
+  + `<rect x="6" y="3.5" width="12" height="17" rx="1"/>${[7.5, 10.5, 13.5, 16.5].map(y => `<path d="M9 ${y}h6"/>`).join("")}</svg>`;
+const TWO_PAGES = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">`
+  + `<path d="M12 5.5C9.5 4 6 3.8 2.5 4.5v15c3.5-.7 7-.5 9.5 1 2.5-1.5 6-1.7 9.5-1v-15c-3.5-.7-7-.5-9.5 1zM12 5.5v15"/>`
+  + `${[8.5, 11.5, 14.5].map(y => `<path d="M5 ${y}h4.5M14.5 ${y}h4.5"/>`).join("")}</svg>`;
 
 function pagesControl(hit){
   const box = document.createElement("div");
   box.className = "pagesctl";
   const can = pageable(hit);
   box.innerHTML = `<div class="pagesway" role="radiogroup" aria-label="Pages">`
-    + `<button type="button" class="pagespick" role="radio" data-pages="one">One page</button>`
-    + `<button type="button" class="pagespick" role="radio" data-pages="two"`
-    + (can ? "" : ` disabled title="${esc(UNPAGED)}"`) + `>Two pages</button></div>`
+    + `<button type="button" class="pagespick" role="radio" data-pages="one" aria-label="One page" title="One page">${ONE_PAGE}</button>`
+    + `<button type="button" class="pagespick" role="radio" data-pages="two" aria-label="Two pages"`
+    + (can ? ` title="Two pages"` : ` disabled title="${esc(UNPAGED)}"`) + `>${TWO_PAGES}</button></div>`
     + `<div class="sizeway" role="radiogroup" aria-label="Size">`
     + SIZES.map(s => `<button type="button" class="sizepick" role="radio" data-size="${s}">${SIZE_SAYS[s]}</button>`).join("")
     + `<button type="button" class="calibrate">Is this the true size? Calibrate</button></div>`
@@ -13361,20 +13511,26 @@ function pagesControl(hit){
 function choosePages(on){
   if (on === pagesOn) return;
   const panel = document.querySelector(".reading");
-  const change = () => { pagesOn = on; if (!HANDHELD) keepSetting("simplex-pages", on ? "two" : "one"); };
+  const change = () => { pagesOn = on; if (!LANDSCAPE) keepSetting("simplex-pages", on ? "two" : "one"); };
   if (!panel || !panel.querySelector || !panel.querySelector(".rbody")) return change();
   reflow(panel, () => { change(); showPages(); });
   // measured again now the spreads are drawn: a notebook's page is not the novels'
   resized(() => {});
 }
 
-// A phone lays the book open when it is turned on its side, and closes it to one page upright.
-const LANDSCAPE = HANDHELD && typeof matchMedia === "function" ? matchMedia("(orientation: landscape)") : null;
+// A tablet lays the book open when it is turned on its side, and closes it to one page upright.
+// A phone stays on one page either way: a spread across its width sets the type at 4px.
+const LANDSCAPE = (HANDHELD || TABLET) && typeof matchMedia === "function" ? matchMedia("(orientation: landscape)") : null;
 if (LANDSCAPE){
-  pagesOn = Boolean(LANDSCAPE.matches);
+  pagesOn = TABLET && Boolean(LANDSCAPE.matches);
   // life size is wider than a phone, and a spread that scrolls sideways fights the swipe
   pageSize = "width";
-  if (LANDSCAPE.addEventListener) LANDSCAPE.addEventListener("change", e => choosePages(e.matches));
+  if (LANDSCAPE.addEventListener) LANDSCAPE.addEventListener("change", e => choosePages(TABLET && e.matches));
+  // on its side the head is a single line; a tap on it shows the rest (touch.css)
+  document.addEventListener("click", event => {
+    const cite = LANDSCAPE.matches && event.target.closest && event.target.closest(".reading .rhead .cite");
+    if (cite) cite.closest(".reading").classList.toggle("headopen");
+  });
 }
 
 // The size the open book is drawn at, from the panel it has to fit.
@@ -13416,6 +13572,7 @@ function showPages(){
   if (!panel || !panel.querySelectorAll) return;
   const on = twoPages(readable(picked));
   panel.classList.toggle("twopages", on);
+  panel.classList.toggle("lifesize", on && pageSize === "life");
   panel.querySelectorAll(".pagespick").forEach(b =>
     b.setAttribute("aria-checked", String((b.dataset.pages === "two") === on)));
   panel.querySelectorAll(".sizepick").forEach(b =>
@@ -13857,6 +14014,12 @@ box.addEventListener("keydown", event => {
   } else if (event.key === "Enter" && !egs.hidden && chosen()){
     take(chosen());
     event.preventDefault();
+  } else if (event.key === "Tab" && !event.shiftKey && !box.value.trim() && box.placeholder && !HANDHELD){
+    // Tab takes the greyed suggestion, as a field's placeholder usually offers
+    box.value = EXAMPLES.opening || box.placeholder;
+    showEgs(false);
+    askNow(box.value);
+    event.preventDefault();
   } else if (event.key === "Escape" && !egs.hidden){
     showEgs(false);
     event.stopPropagation();          // the passage is not what Escape means here
@@ -13955,7 +14118,7 @@ window.keepPlace = () => {
 
 // "Latest update Oct 18 at 11:49 pm", in the reader's own time zone: the commit this build came from.
 (() => {
-  const when = new Date("2026-11-10T17:38:13-06:00"), el = document.getElementById("updated");
+  const when = new Date("2026-11-17T11:02:59-06:00"), el = document.getElementById("updated");
   if (!el || isNaN(when)) return;
   const day = when.toLocaleDateString("en-US", {month: "short", day: "numeric"});
   const time = when.toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit"}).replace(/\s/g, " ").toLowerCase();
