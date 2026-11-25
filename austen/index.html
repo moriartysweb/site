@@ -7437,7 +7437,7 @@ function feedbackContext(){
     .find(p => p.getBoundingClientRect().bottom >= mid);
   const dark = (document.documentElement.dataset.theme
     || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-  const lines = [`App: ${document.title}, build ${"36dbfa2"}`,
+  const lines = [`App: ${document.title}, build ${"ab799d7"}`,
     `View: ${HANDHELD ? "mobile" : "desktop"}${simplexOn ? ", simple mode" : ""}, ${innerWidth}x${innerHeight}`,
     `Display: ${dark ? "dark" : "light"} mode, ${leafing} style, ${lampChosen ? lamplight : "default"} light`];
   // only what differs from a new reader's settings, and only switches this page has: Austen has no BSJ
@@ -13104,8 +13104,12 @@ function drawArrows(){
     return;
   }
 
-  if (!tourCodes.length) return;
-  tourCodes.forEach(code => {
+  // Out of the tour, a search that found one story still points at where it sits: there is
+  // nothing to choose between, and the arrow is the quickest way from the card to the place.
+  const only = concept() && concept().ranked.length === 1 ? [concept().ranked[0].code] : [];
+  const codes = tourCodes.length ? tourCodes : only;
+  if (!codes.length) return;
+  codes.forEach(code => {
     const card = document.querySelector(`.rail .card[data-code="${code}"]`);
     const seg = document.querySelector(`.seg[data-code="${code}"]`);
     const hit = resultFor(code);
@@ -14250,7 +14254,7 @@ window.keepPlace = () => {
 
 // "Latest update Oct 18 at 11:49 pm", in the reader's own time zone: the commit this build came from.
 (() => {
-  const when = new Date("2026-11-24T23:47:35-06:00"), el = document.getElementById("updated");
+  const when = new Date("2026-11-24T23:52:27-06:00"), el = document.getElementById("updated");
   if (!el || isNaN(when)) return;
   const day = when.toLocaleDateString("en-US", {month: "short", day: "numeric"});
   const time = when.toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit"}).replace(/\s/g, " ").toLowerCase();
