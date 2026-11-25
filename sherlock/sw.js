@@ -2,9 +2,9 @@
 // web/site.py fills in the three constants; a new build changes CACHE, which is what
 // makes the browser take the new files and drop the old ones.
 const PREFIX = "sherlock-";
-const CACHE = PREFIX + "f83fcdbe31f6";
+const CACHE = PREFIX + "6abb877b3e17";
 const FILES = ["./", "index.html", "pages.json", "notes-extra.json", "notes-more.json", "bsj.json", "sherlock-180.png", "sherlock-192.png", "sherlock-512.png", "sherlock.svg", "manifest.webmanifest", "/account.js"];
-const FONTS = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Lora:ital,wght@0,400;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Pinyon+Script&display=swap";
+const FONTS = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Baskervville:wght@600&family=Baskervville+SC:wght@600&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Lora:ital,wght@0,400;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Pinyon+Script&display=swap";
 
 // Google answers the font stylesheet in every script it knows; the readers set only Latin.
 const LATIN = /\/\* latin(-ext)? \*\/\s*@font-face\s*{[^}]*}/g;
